@@ -1,10 +1,7 @@
 """Strings for element names in properties.yaml files."""
 from manifest.enums import (
-    CallSTAMPsMethod,
     FunctionalDataProcessorStrategy,
-    SampleType,
     StrandStrategy,
-    WorkflowKind,
     YamlSchemaElementType,
     enum_names,
 )
