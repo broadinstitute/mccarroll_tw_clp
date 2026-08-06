@@ -5,6 +5,7 @@ from util.simple_date import SimpleDate
 from manifest.util.prop_manifest_util import YamlPropManifestUtil
 from manifest.util.schema_element_validator import YamlSchemaElementValidator
 from manifest.util.validator import YamlValidator
+import util.gcs_util as gcs_util
 
 
 class YamlPrimitiveValidator(YamlSchemaElementValidator):
@@ -57,7 +58,7 @@ class YamlPathValidator(YamlPrimitiveValidator):
             return errors
         if not self.require_exists:
             return []
-        missing = [Path(str(p)) for p in YamlPropManifestUtil.force_list(value) if not Path(str(p)).exists()]
+        missing = [p for p in YamlPropManifestUtil.force_list(value) if not gcs_util.gcs_path_is_file(p)]
         return [
             f"Required file or directory {p} not found at "
             f"{YamlValidator.key_with_path(schema_element.name, path_to_here)}"

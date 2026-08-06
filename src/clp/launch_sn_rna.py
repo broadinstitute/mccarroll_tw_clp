@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from google.cloud import storage
 
 from manifest.util.manifest_util import YamlManifestUtil
+from manifest.manifest_keys import SnRnaManifestKey
+import util.gcs_util as gcs_util
 
-GCS_PATH_RE = re.compile(r"^gs://(?P<bucket>[^/]+)/(?P<blob>.+)$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Stand-ins for the manifest keys used to project libraryDefaults onto libraries.
@@ -63,7 +63,7 @@ class SnRnaLaunchContext:
 
 
 def _gcs_path_type(value: str) -> str:
-    if not GCS_PATH_RE.match(value):
+    if not gcs_util.GCS_PATH_RE.match(value):
         raise argparse.ArgumentTypeError(f"not a gs:// path: '{value}'")
     return value
 
@@ -109,28 +109,6 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _split_gcs_path(gcs_path: str) -> (str, str):
-    match = GCS_PATH_RE.match(gcs_path)
-    if not match:
-        raise LaunchSnRnaError(f"not a gs:// path: '{gcs_path}'")
-    return match.group("bucket"), match.group("blob")
-
-
-def load_gcs_yaml(gcs_path: str, storage_client: storage.Client) -> Dict[str, Any]:
-    """Download a yaml file from Google Cloud Storage and parse it into a dict."""
-    bucket_name, blob_name = _split_gcs_path(gcs_path)
-    blob = storage_client.bucket(bucket_name).blob(blob_name)
-    if not blob.exists():
-        raise LaunchSnRnaError(f"gs:// object not found: '{gcs_path}'")
-    loaded = yaml.safe_load(blob.download_as_text())
-    if loaded is None:
-        return {}
-    if not isinstance(loaded, dict):
-        raise LaunchSnRnaError(
-            f"expected a yaml mapping at '{gcs_path}', found {type(loaded).__name__}")
-    return loaded
-
-
 def load_manifest(manifest_path: Path) -> Dict[str, Any]:
     with open(manifest_path) as fh:
         loaded = yaml.safe_load(fh)
@@ -173,29 +151,26 @@ def get_tenx_metadata(tenx_version: str, tenx_metadata: Dict[str, Any]) -> Dict[
             f"10X chemistry version(s) not found in 10X metadata: {tenx_version}")
     return tenx_metadata[tenx_version]
 
-def load_project_metadata(gcs_path: str, storage_client: storage.Client) -> Dict[str, Any]:
-    project_metadata = load_gcs_yaml(gcs_path, storage_client)
+def load_project_metadata(gcs_path: str) -> Dict[str, Any]:
+    project_metadata = gcs_util.load_gcs_yaml(gcs_path)
     lstProjects = project_metadata['projects']
     # Convert the list of projects into a dictionary in which the key is the value of the 'name' element of each sub-dictionary
     dctProjects = {dctProject['name']: dctProject for dctProject in lstProjects}
 
     return dctProjects
 
-def load_tenx_metadata(gcs_path: str, storage_client: storage.Client) -> Dict[str, Any]:
-    tenx_metadata = load_gcs_yaml(gcs_path, storage_client)
+def load_tenx_metadata(gcs_path: str) -> Dict[str, Any]:
+    tenx_metadata = gcs_util.load_gcs_yaml(gcs_path)
     # Convert the list of tenx metadata into a dictionary in which the key is the value of the 'version10X' element of each sub-dictionary
     dctTenxMetadata = {dctTenx['version10X']: dctTenx for dctTenx in tenx_metadata['versions']}
     return dctTenxMetadata
 
-def build_launch_context(args: argparse.Namespace,
-                         storage_client: Optional[storage.Client] = None) -> SnRnaLaunchContext:
+def build_launch_context(args: argparse.Namespace) -> SnRnaLaunchContext:
     manifest = load_and_combine_manifests(args.manifest)
 
-    storage_client = storage_client or storage.Client()
-    project_metadata = load_project_metadata(args.project_metadata, storage_client)
+    project_metadata = load_project_metadata(args.project_metadata)
     project_resources = resolve_project_resources(project_metadata, args.project)
-    tenx_metadata = load_tenx_metadata(args.tenx_metadata, storage_client)
-    manifest.update(get_tenx_metadata(manifest['version10X'], tenx_metadata))
+    tenx_metadata = load_tenx_metadata(args.tenx_metadata)
 
     return SnRnaLaunchContext(
         manifest_path=args.manifest,
@@ -209,11 +184,12 @@ def build_launch_context(args: argparse.Namespace,
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
-    try:
-        context = build_launch_context(args)
-    except LaunchSnRnaError as e:
-        print(f"launchSnRna: {e}", file=sys.stderr)
+    context = build_launch_context(args)
+    errors = SnRnaManifestKey.validate_manifest(context.manifest)
+    if errors:
+        print("Errors parsing manifest:\n" + "\n".join(errors), file=sys.stderr)
         return 1
+    context.manifest.update(get_tenx_metadata(context.manifest['version10X'], context.tenx_metadata))
     print(context.describe())
     return 0
 

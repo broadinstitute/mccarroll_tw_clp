@@ -1,4 +1,5 @@
 from typing import Any, Iterable, List, Mapping, Optional
+from google.cloud import storage
 
 
 class YamlValidator:
