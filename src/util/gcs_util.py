@@ -22,9 +22,10 @@
 # SOFTWARE.
 
 import re
+from typing import Any, Dict
+
 import yaml
 from google.cloud import storage
-from typing import Any, Dict, List, Optional
 
 GCS_PATH_RE = re.compile(r"^gs://(?P<bucket>[^/]+)/(?P<blob>.+)$")
 

@@ -5,7 +5,7 @@ from manifest.enums import (
     enum_names,
 )
 from manifest.util.schema_element import YamlSchemaElement
-from manifest.util.validators import YamlPathValidator, YamlPermissiveValidator
+from manifest.util.validators import YamlPermissiveValidator
 from manifest.enums import YamlSchemaElementType
 from manifest.util.abstract_manifest_key import AbstractManifestKey
 
