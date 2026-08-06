@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.util.manifest_util import YamlManifestUtil
 from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
@@ -81,8 +82,18 @@ def _manifest_path_type(value: str) -> Path:
     return path
 
 
+class _SnRnaArgumentParser(argparse.ArgumentParser):
+    def print_help(self, file=None) -> None:
+        super().print_help(file)
+        out = file if file is not None else sys.stdout
+        print("\nManifest keys:", file=out)
+        documenter = TextYamlManifestDocumenter(out=out)
+        for element in SnRnaManifestKey.get_documentation_recursive_roots():
+            documenter.document_element_recursive(element, 0)
+
+
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    parser = _SnRnaArgumentParser(
         description=__doc__)
     parser.add_argument(
         "manifest", type=_manifest_path_type, nargs="+",
