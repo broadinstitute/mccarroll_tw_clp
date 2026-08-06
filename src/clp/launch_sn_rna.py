@@ -2,14 +2,18 @@
 """Launch the single-nucleus RNA-seq (snRNA) workflow cascade for a library in Seqera cloud.
 """
 import argparse
+import os
 import re
 import sys
 import getpass
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import tempfile
+import shutil
 
 import yaml
+import subprocess
 
 from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.util.manifest_util import YamlManifestUtil
@@ -117,6 +121,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--output-dir", type=_gcs_path_type, metavar="GCS_PATH",
         help="gs:// path under which workflow outputs will be written. Default: determined based on project and library")
+    parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
+                        default="snRnaSeq_prod")
+    parser.add_argument("--verbose", "-v", action="store_true", default=False)
+    parser.add_argument("--dry-run", action="store_true",default=False,help="Don't actually run the workflow")
+    parser.add_argument("--tw", default="tw",
+                        help="Path to the TW executable. Use this if (annoyingly) PyCharm uv doesn't respect PATH changes.  Default: %(default)s)")
     return parser.parse_args(argv)
 
 
@@ -192,7 +202,6 @@ def build_launch_context(args: argparse.Namespace) -> SnRnaLaunchContext:
         email=args.email,
         output_dir=args.output_dir)
 
-
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     context = build_launch_context(args)
@@ -200,8 +209,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     if errors:
         print("Errors parsing manifest:\n" + "\n".join(errors), file=sys.stderr)
         return 1
-    context.manifest.update(get_tenx_metadata(context.manifest['version10X'], context.tenx_metadata))
-    print(context.describe())
+    manifest = context.manifest
+    manifest.update(get_tenx_metadata(manifest['version10X'], context.tenx_metadata))
+    if args.output_dir:
+        outdir = args.output_dir
+    else:
+        outdir = f"gs://{context.project_resources['standard_bucket']}/projects/{context.project_resources['name']}/{manifest['library']}"
+    manifest['outdir'] = outdir
+    params_yaml = tempfile.mkstemp(suffix=".yaml", prefix=manifest['library'] + '.', text=True)
+    with os.fdopen(params_yaml[0], "w") as f:
+        yaml.safe_dump(manifest, f, default_flow_style=False, sort_keys=False)
+    if args.verbose:
+        print("Wrote manifest to " + params_yaml[1])
+    lstCommandLine = [
+        args.tw, "launch",
+        "--workspace=" + context.project_resources['tower_workspace'],
+        args.pipeline,
+        "--params-file=" + params_yaml[1],
+        "--name=x" + manifest['experimentDate'] + '_' + manifest['library'],
+    ]
+    if args.verbose or args.dry_run:
+        print(" ".join(lstCommandLine))
+    if not args.dry_run:
+        subprocess.run(lstCommandLine, check=True)
     return 0
 
 

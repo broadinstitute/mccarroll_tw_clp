@@ -26,10 +26,10 @@ YamlSchemaElement(
 YamlSchemaElement(
     "version10X", required=True, doc="Version of 10X chemistry.", tyype=YamlSchemaElementType.STRING),
 YamlSchemaElement(
-    "fastqRead1", doc="Path to the FASTQ file for read 1.", tyype=YamlSchemaElementType.PATH, required=True,
+    "fastq_read1", doc="Path to the FASTQ file for read 1.", tyype=YamlSchemaElementType.PATH, required=True,
     list_allowed=True),
 YamlSchemaElement(
-    "fastqRead2", doc="Path to the FASTQ file for read 2.", tyype=YamlSchemaElementType.PATH, required=True,
+    "fastq_read2", doc="Path to the FASTQ file for read 2.", tyype=YamlSchemaElementType.PATH, required=True,
     list_allowed=True),
 YamlSchemaElement(
     "targetBamSizeMBytes", doc="Target BAM size in MB.  Default: 2048.", tyype=YamlSchemaElementType.INT),
