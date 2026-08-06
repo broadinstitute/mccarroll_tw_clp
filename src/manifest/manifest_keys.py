@@ -21,8 +21,8 @@ _lstSnRnaManifestKeys = [
     YamlSchemaElement(
     "library", doc="Library name.", tyype=YamlSchemaElementType.STRING, required=True),
 YamlSchemaElement(
-    "experimentDate", doc="Library directory is prepended with this date.  Default: flowcell run date.",
-    tyype=YamlSchemaElementType.DATE),
+    "experimentDate", doc="Library directory is prepended with this date.",
+    tyype=YamlSchemaElementType.DATE, required=True),
 YamlSchemaElement(
     "version10X", required=True, doc="Version of 10X chemistry.", tyype=YamlSchemaElementType.STRING),
 YamlSchemaElement(

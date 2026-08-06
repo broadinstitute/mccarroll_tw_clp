@@ -22,34 +22,41 @@
 # SOFTWARE.
 
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import yaml
 from google.cloud import storage
 
 GCS_PATH_RE = re.compile(r"^gs://(?P<bucket>[^/]+)/(?P<blob>.+)$")
 
-storage_client = storage.Client()
+_storage_client: storage.Client | None = None
 
 
-def _split_gcs_path(gcs_path: str) -> (str, str):
+def _get_storage_client() -> storage.Client:
+    global _storage_client
+    if _storage_client is None:
+        _storage_client = storage.Client()
+    return _storage_client
+
+
+def _split_gcs_path(gcs_path: str) -> Tuple[str, str]:
     match = GCS_PATH_RE.match(gcs_path)
     if not match:
-        raise Exception(f"not a gs:// path: '{gcs_path}'")
+        raise ValueError(f"not a gs:// path: '{gcs_path}'")
     return match.group("bucket"), match.group("blob")
 
 
 def gcs_path_is_file(gcs_path: str) -> bool:
     """Return True if gcs_path exists as a file (blob)."""
     bucket_name, blob_name = _split_gcs_path(gcs_path)
-    return storage_client.bucket(bucket_name).blob(blob_name).exists()
+    return _get_storage_client().bucket(bucket_name).blob(blob_name).exists()
 
 
 def gcs_path_is_dir(gcs_path: str) -> bool:
     """Return True if gcs_path exists as a directory prefix."""
     bucket_name, blob_name = _split_gcs_path(gcs_path)
     prefix = blob_name.rstrip("/") + "/"
-    return any(True for _ in storage_client.bucket(bucket_name).list_blobs(prefix=prefix, max_results=1))
+    return any(True for _ in _get_storage_client().bucket(bucket_name).list_blobs(prefix=prefix, max_results=1))
 
 
 def gcs_path_exists(gcs_path: str) -> bool:
@@ -72,7 +79,7 @@ def require_gcs_dir(gcs_path: str) -> None:
 def load_gcs_yaml(gcs_path: str) -> Dict[str, Any]:
     """Download a yaml file from Google Cloud Storage and parse it into a dict."""
     bucket_name, blob_name = _split_gcs_path(gcs_path)
-    blob = storage_client.bucket(bucket_name).blob(blob_name)
+    blob = _get_storage_client().bucket(bucket_name).blob(blob_name)
     if not blob.exists():
         raise Exception(f"gs:// object not found: '{gcs_path}'")
     loaded = yaml.safe_load(blob.download_as_text())

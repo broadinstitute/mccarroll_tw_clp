@@ -59,7 +59,7 @@ class YamlPathValidator(YamlPrimitiveValidator):
             return []
         missing = [p for p in YamlPropManifestUtil.force_list(value) if not gcs_util.gcs_path_is_file(p)]
         return [
-            f"Required file or directory {p} not found at "
+            f"Required file {p} not found at "
             f"{YamlValidator.key_with_path(schema_element.name, path_to_here)}"
             for p in missing
         ]
@@ -80,7 +80,7 @@ class YamlSimpleDateValidator(YamlPrimitiveValidator):
             try:
                 SimpleDate(s)
             except ValueError:
-                result.append(f"Cannot parse as date '{s}' from {path_to_value}'")
+                result.append(f"Cannot parse as date '{s}' from {path_to_value}")
         return result
 
 

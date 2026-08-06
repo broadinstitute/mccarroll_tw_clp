@@ -22,16 +22,6 @@ import util.gcs_util as gcs_util
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# Stand-ins for the manifest keys used to project libraryDefaults onto libraries.
-# YamlManifestUtil.apply_defaults() only needs a `.name` attribute, so these avoid a
-# dependency on manifest.util.manifest_keys, which cannot currently be imported (its
-# import of manifest.property_keys fails: SampleType/WorkflowKind/CallSTAMPsMethod are
-# referenced there but not yet defined in manifest.enums).
-_LIBRARIES_KEY = argparse.Namespace(name="libraries")
-_LIBRARY_DEFAULTS_KEY = argparse.Namespace(name="libraryDefaults")
-_VERSION_10X_KEY = "version10X"
-
-
 
 class LaunchSnRnaError(Exception):
     """A user-facing problem with the launch arguments, manifest, or cloud metadata."""
@@ -39,7 +29,7 @@ class LaunchSnRnaError(Exception):
 
 @dataclass
 class SnRnaLaunchContext:
-    manifest_path: Path
+    manifest_path: List[Path]
     manifest: Dict[str, Any]
     project: str
     project_resources: Optional[Dict[str, Any]]
@@ -216,6 +206,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         outdir = f"gs://{context.project_resources['standard_bucket']}/projects/{context.project_resources['name']}/{manifest['library']}"
     manifest['outdir'] = outdir
+    manifest['email'] = args.email
     params_yaml = tempfile.mkstemp(suffix=".yaml", prefix=manifest['library'] + '.', text=True)
     with os.fdopen(params_yaml[0], "w") as f:
         yaml.safe_dump(manifest, f, default_flow_style=False, sort_keys=False)
