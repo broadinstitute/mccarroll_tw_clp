@@ -1,0 +1,64 @@
+# Per-project data used to associate both on-premises and GCP resources with a project
+# We need to source-code control this somewhere.  This seems as good a place as any.
+# The live location of this file is gs://mccarroll_scrnaseq_standard/metadata/project/project_metadata.yaml
+projects:
+  - name: mccarroll-test
+    tower_workspace: McCarrollLab/pipeline-testing
+    temp_bucket: mccarroll_scrnaseq_central_temp
+    coldline_bucket: mccarroll_scrnaseq_cold
+    standard_bucket: mccarroll_scrnaseq_standard
+    archive_bucket: mccarroll-scrna-seq_archive
+  - name: mccarroll-dropseq
+    tower_workspace: McCarrollLab/mccarroll-dropseq
+    temp_bucket: mccarroll-dropseq_temp
+    coldline_bucket: mccarroll-dropseq_cold
+    standard_bucket: mccarroll-dropseq_standard
+    archive_bucket: mccarroll-dropseq_archive
+  - name: mccarroll-marmoset-enhancer
+    tower_workspace: McCarrollLab/mccarroll-marmoset-enhancer
+    temp_bucket: mccarroll-marmoset-enhancer_temp
+    coldline_bucket: mccarroll-marmoset-enhancer_cold
+    standard_bucket: mccarroll-marmoset-enhancer_standard
+    archive_bucket: mccarroll-marmoset-enhancer_archive
+  - name: convergentneuro-mccarroll
+    tower_workspace: McCarrollLab/convergentneuro-mccarroll
+    temp_bucket: convergentneuro-mccarroll_temp
+    coldline_bucket: mccarroll_cold
+    standard_bucket: convergentneuro-mccarroll_standard
+    archive_bucket: convergentneuro-mccarroll_archive
+  - name: mccarroll-huntingtons
+    tower_workspace: McCarrollLab/mccarroll-huntingtons
+    temp_bucket: mccarroll-huntingtons_temp
+    coldline_bucket: mccarroll_huntingtons_cold
+    standard_bucket: mccarroll-huntingtons_standard
+    archive_bucket: mccarroll-huntingtons_archive
+  - name: bican-um1_RNAseq
+    tower_workspace: McCarrollLab/bican-um1_RNAseq
+    temp_bucket: bican-um1-mccarroll_temp
+    coldline_bucket: bican-um1-mccarroll_cold
+    standard_bucket: bican-um1-mccarroll_standard
+    archive_bucket: bican-um1-mccarroll_archive
+  - name: bican-um1_multiome
+    tower_workspace: McCarrollLab/bican-um1_multiome
+    temp_bucket: bican-um1-mccarroll_temp
+    coldline_bucket: bican-um1-mccarroll_cold
+    standard_bucket: bican-um1-mccarroll_standard
+    archive_bucket: bican-um1-mccarroll_archive
+  - name: bican-um1_slide_tags
+    tower_workspace: McCarrollLab/bican-um1_slide_tags
+    temp_bucket: bican-um1-mccarroll_temp
+    coldline_bucket: bican-um1-mccarroll_cold
+    standard_bucket: bican-um1-mccarroll_standard
+    archive_bucket: bican-um1-mccarroll_archive
+  - name: mccarroll-xcre
+    tower_workspace: McCarrollLab/mccarroll-xcre
+    temp_bucket: mccarroll-xcre_temp
+    coldline_bucket: mccarroll-xcre_cold
+    standard_bucket: mccarroll-xcre_standard
+    archive_bucket: mccarroll-xcre_archive
+  - name: mccarroll-sca3
+    tower_workspace: McCarrollLab/mccarroll-sca3
+    temp_bucket: mccarroll-sca3_temp
+    coldline_bucket: mccarroll-sca3_cold
+    standard_bucket: mccarroll-sca3_standard
+    archive_bucket: mccarroll-sca3_archive
