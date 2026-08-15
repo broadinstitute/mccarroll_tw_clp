@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: quay.io
-  IMAGE_NAME: mccarroll-tw-clp
+  IMAGE_NAME: broadinstitute/mccarroll-tw-clp
   DOCKERFILE: Dockerfile
 
 jobs:
