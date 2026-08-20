@@ -40,7 +40,7 @@ class LaunchSnRnaDragen(LaunchSnRna):
         self.manifests = YamlManifestUtil.apply_defaults(self.manifest, libraryDefaults, libraries)
         # These statements just needed to satisfy manifest validation.
         self.manifest[libraries.name] = copy.deepcopy(self.manifests)
-        del self.manifest[libraryDefaults.name]
+        self.manifest.pop(libraryDefaults.name, None)
 
         # Get each library's manifest ready for converting into nextflow manifest
         fastqDict = self.load_fastq_list()
