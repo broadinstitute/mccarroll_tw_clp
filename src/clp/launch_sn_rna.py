@@ -85,7 +85,7 @@ class LaunchSnRna:
             help="Local yaml manifest file describing the libraries to process.  If more than one manifest file "
                  "is provided, they will be combined with earlier manifest files taking precedence if key collisions.")
         parser.add_argument(
-            "--project",
+            "--project", required=True,
             help="Project name, used to look up project resources in the project metadata file.")
         parser.add_argument(
             "--project-metadata", type=_gcs_path_type, metavar="GCS_PATH",
