@@ -124,7 +124,7 @@ _lstSnRnaDragenManifestKeys = [
     libraries,
     libraryDefaults
 ]
-class snRnaDragenManifestKey(AbstractManifestKey):
+class SnRnaDragenManifestKey(AbstractManifestKey):
     @classmethod
     def _root_elements_no_downstream(cls):
         return _lstSnRnaDragenManifestKeys
@@ -132,10 +132,15 @@ class snRnaDragenManifestKey(AbstractManifestKey):
     @classmethod
     def get_documentation_recursive_roots(cls):
         return [libraries]
+
     @classmethod
     def get_documentation_non_recursive_roots(cls) -> List[YamlSchemaElement]:
         return [libraryDefaults]
 
+
 for manifestKey in _lstSnRnaDragenManifestKeys:
-    setattr(snRnaDragenManifestKey, manifestKey.name, manifestKey)
+    setattr(SnRnaDragenManifestKey, manifestKey.name, manifestKey)
+
+# Backwards-compatible alias (imported by launch_sn_rna_dragen)
+snRnaDragenManifestKey = SnRnaDragenManifestKey
 
