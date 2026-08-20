@@ -21,8 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import csv
+import io
 import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import yaml
 from google.cloud import storage
@@ -89,5 +91,23 @@ def load_gcs_yaml(gcs_path: str) -> Dict[str, Any]:
         raise Exception(
             f"expected a yaml mapping at '{gcs_path}', found {type(loaded).__name__}")
     return loaded
+
+
+def load_gcs_csv(gcs_path: str, required_columns: Optional[Iterable[str]] = None) -> List[Dict[str, str]]:
+    """Download a csv file from Google Cloud Storage and parse it into a list of dicts, one per row, keyed
+    by column header.
+
+    :param required_columns: if given, raise an exception if any of these columns is missing from the header.
+    """
+    bucket_name, blob_name = _split_gcs_path(gcs_path)
+    blob = _get_storage_client().bucket(bucket_name).blob(blob_name)
+    if not blob.exists():
+        raise Exception(f"gs:// object not found: '{gcs_path}'")
+    reader = csv.DictReader(io.StringIO(blob.download_as_text()))
+    if required_columns is not None:
+        missing = [column for column in required_columns if column not in (reader.fieldnames or [])]
+        if missing:
+            raise Exception(f"csv file '{gcs_path}' is missing required column(s): {', '.join(missing)}")
+    return list(reader)
 
 
