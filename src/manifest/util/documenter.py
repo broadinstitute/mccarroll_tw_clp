@@ -15,6 +15,9 @@ class YamlManifestDocumenter:
         for child in element.children:
             self.document_element_recursive(child, nesting_level + 1)
 
+    def document_element_non_recursive(self, element: YamlSchemaElement, nesting_level: int) -> None:
+        self.document_element(element, nesting_level)
+
 
 class TextYamlManifestDocumenter(YamlManifestDocumenter):
     """Generate yaml manifest documentation to a stream.

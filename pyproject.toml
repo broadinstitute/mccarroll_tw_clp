@@ -6,6 +6,7 @@ dependencies = ["google-cloud-storage", "pyyaml"]
 
 [project.scripts]
 launchSnRna = "clp.launch_sn_rna:main"
+launchSnRnaDragen = "clp.launch_sn_rna_dragen:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
