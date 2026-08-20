@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from clp.launch_sn_rna import LaunchSnRna, LaunchSnRnaError, _gcs_path_type
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
-from manifest.manifest_keys import libraries, libraryDefaults, snRnaDragenManifestKey, library, experimentDate, rgsm
+from manifest.manifest_keys import libraries, libraryDefaults, SnRnaDragenManifestKey, library, experimentDate, rgsm
 from manifest.util.manifest_util import YamlManifestUtil
 import util.gcs_util as gcs_util
 from util import misc_util
@@ -17,7 +17,7 @@ _FASTQ_LIST_COLUMNS = ["RGSM", "Read1File", "Read2File"] # We don't care about c
 
 
 class LaunchSnRnaDragen(LaunchSnRna):
-    manifest_key_class = snRnaDragenManifestKey
+    manifest_key_class = SnRnaDragenManifestKey
     prog_description = __doc__
 
     def __init__(self) -> None:

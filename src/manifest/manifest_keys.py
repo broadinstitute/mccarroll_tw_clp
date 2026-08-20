@@ -141,6 +141,4 @@ class SnRnaDragenManifestKey(AbstractManifestKey):
 for manifestKey in _lstSnRnaDragenManifestKeys:
     setattr(SnRnaDragenManifestKey, manifestKey.name, manifestKey)
 
-# Backwards-compatible alias (imported by launch_sn_rna_dragen)
-snRnaDragenManifestKey = SnRnaDragenManifestKey
 
