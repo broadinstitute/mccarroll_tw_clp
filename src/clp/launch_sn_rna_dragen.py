@@ -54,7 +54,7 @@ class LaunchSnRnaDragen(LaunchSnRna):
             for manifest_rgsm in lstRgsm:
                 if manifest_rgsm not in fastqDict:
                     raise LaunchSnRnaError(
-                        f"rgsm '{manifest_rgsm}' not found in {self.fastq_list_path}v")
+                        f"rgsm '{manifest_rgsm}' not found in '{self.fastq_list_path}'")
                 fastq_entries.extend(fastqDict[manifest_rgsm])
             manifest[FASTQ_READ1] = [f"{self.run_folder}/{read1}" for read1, _read2 in fastq_entries]
             manifest[FASTQ_READ2] = [f"{self.run_folder}/{read2}" for _read1, read2 in fastq_entries]
