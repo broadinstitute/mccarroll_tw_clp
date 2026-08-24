@@ -78,13 +78,18 @@ def require_gcs_dir(gcs_path: str) -> None:
         raise Exception(f"gs:// directory not found: '{gcs_path}'")
 
 
-def load_gcs_yaml(gcs_path: str) -> Dict[str, Any]:
-    """Download a yaml file from Google Cloud Storage and parse it into a dict."""
+def load_gcs_text(gcs_path: str) -> str:
+    """Download a file from Google Cloud Storage and return its contents as text."""
     bucket_name, blob_name = _split_gcs_path(gcs_path)
     blob = _get_storage_client().bucket(bucket_name).blob(blob_name)
     if not blob.exists():
         raise Exception(f"gs:// object not found: '{gcs_path}'")
-    loaded = yaml.safe_load(blob.download_as_text())
+    return blob.download_as_text()
+
+
+def load_gcs_yaml(gcs_path: str) -> Dict[str, Any]:
+    """Download a yaml file from Google Cloud Storage and parse it into a dict."""
+    loaded = yaml.safe_load(load_gcs_text(gcs_path))
     if loaded is None:
         return {}
     if not isinstance(loaded, dict):
@@ -99,11 +104,7 @@ def load_gcs_csv(gcs_path: str, required_columns: Optional[Iterable[str]] = None
 
     :param required_columns: if given, raise an exception if any of these columns is missing from the header.
     """
-    bucket_name, blob_name = _split_gcs_path(gcs_path)
-    blob = _get_storage_client().bucket(bucket_name).blob(blob_name)
-    if not blob.exists():
-        raise Exception(f"gs:// object not found: '{gcs_path}'")
-    reader = csv.DictReader(io.StringIO(blob.download_as_text()))
+    reader = csv.DictReader(io.StringIO(load_gcs_text(gcs_path)))
     if required_columns is not None:
         missing = [column for column in required_columns if column not in (reader.fieldnames or [])]
         if missing:
