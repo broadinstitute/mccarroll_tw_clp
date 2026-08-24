@@ -4,9 +4,13 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = ["google-cloud-storage", "pyyaml"]
 
+[project.optional-dependencies]
+plot = ["matplotlib"]
+
 [project.scripts]
 launchSnRna = "clp.launch_sn_rna:main"
 launchSnRnaDragen = "clp.launch_sn_rna_dragen:main"
+reportAndValidateSampleIndices = "clp.report_and_validate_sample_indices:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
