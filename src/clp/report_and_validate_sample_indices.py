@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Summarize and validate the sample index situation for a sequencing run, from bcl-convert's
-demultiplexing reports.
+demultiplexing reports.  Reports directory can be either in local file system or google bucket.
 
-Port of reportAndValidateSampleIndices() (and its helpers) from
-DropSeq.illumina/R/sampleIndex.R, generalized so the run folder may be a local path or a gs:// path.
 Report output (csv/tsv/log/pdf) is always written locally.
 """
 import argparse
@@ -36,18 +34,18 @@ def _num_reads(row: Dict[str, str]) -> float:
     return float(row["# Reads"])
 
 
-def summarize_top_unknown_barcodes(out_file: str, report_dir: str, num_to_report: int = 1000) -> None:
+def summarize_top_unknown_barcodes(out_file: str, reports_dir: str, num_to_report: int = 1000) -> None:
     """Create a csv of the top unmatched sample indices for a run, sorted by descending read count.
 
     Reads Demultiplex_Stats.csv in addition to Top_Unknown_Barcodes.csv in order to compute each
     unmatched index pair's percentage of all reads (not just of unmatched reads).
     """
     demultiplex_rows = path_util.load_csv_rows(
-        path_util.join(report_dir, DEMULTIPLEX_STATS_FILE), required_columns=["# Reads"])
+        path_util.join(reports_dir, DEMULTIPLEX_STATS_FILE), required_columns=["# Reads"])
     num_reads = sum(_num_reads(row) for row in demultiplex_rows)
 
     unknown_rows = path_util.load_csv_rows(
-        path_util.join(report_dir, UNKNOWN_BARCODES_FILE), required_columns=["index", "index2", "# Reads"])
+        path_util.join(reports_dir, UNKNOWN_BARCODES_FILE), required_columns=["index", "index2", "# Reads"])
     aggregated: Dict[Tuple[str, str], float] = {}
     for row in unknown_rows:
         key = (row["index"], row["index2"])
@@ -66,10 +64,10 @@ def summarize_top_unknown_barcodes(out_file: str, report_dir: str, num_to_report
             ])
 
 
-def summarize_demultiplex_stats(out_file: str, report_dir: str) -> None:
+def summarize_demultiplex_stats(out_file: str, reports_dir: str) -> None:
     """Create a tab-separated file summarizing PF read counts per library for a run."""
     rows = path_util.load_csv_rows(
-        path_util.join(report_dir, DEMULTIPLEX_STATS_FILE), required_columns=["SampleID", "# Reads"])
+        path_util.join(reports_dir, DEMULTIPLEX_STATS_FILE), required_columns=["SampleID", "# Reads"])
     library_sizes: Dict[str, float] = {}
     undetermined_size = 0.0
     for row in rows:
@@ -219,7 +217,7 @@ def _extract_flowcell(run_info_xml_text: str) -> str:
     return flowcell_elem.text.strip()
 
 
-def report_and_validate_sample_indices(report_dir: str, output_dir: str = ".", make_plot: bool = False) -> None:
+def report_and_validate_sample_indices(reports_dir: str, output_dir: str = ".", make_plot: bool = False) -> None:
     """Summarize and validate the sample index situation for a sequencing run.
 
     :param run_folder: run folder, either a local path or a gs:// path. Must contain RunInfo.xml and a
@@ -228,18 +226,18 @@ def report_and_validate_sample_indices(report_dir: str, output_dir: str = ".", m
     :param make_plot: if True, also write a PDF bar chart of reads per library.
     :raise SampleIndexValidationError: if the sample index metrics exceed an acceptable threshold.
     """
-    report_dir = report_dir.rstrip("/")
-    flowcell = _extract_flowcell(path_util.read_text(path_util.join(report_dir, "RunInfo.xml")))
+    reports_dir = reports_dir.rstrip("/")
+    flowcell = _extract_flowcell(path_util.read_text(path_util.join(reports_dir, "RunInfo.xml")))
 
     top_unknown_barcodes_file = os.path.join(output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv")
-    summarize_top_unknown_barcodes(out_file=top_unknown_barcodes_file, report_dir=report_dir)
+    summarize_top_unknown_barcodes(out_file=top_unknown_barcodes_file, reports_dir=reports_dir)
     summarize_demultiplex_stats(
-        out_file=os.path.join(output_dir, f"{flowcell}.Demultiplex_Stats.tsv"), report_dir=report_dir)
+        out_file=os.path.join(output_dir, f"{flowcell}.Demultiplex_Stats.tsv"), reports_dir=reports_dir)
 
     messages = plot_and_validate_sample_index_reports(
-        demultiplex_stats_file=path_util.join(report_dir, DEMULTIPLEX_STATS_FILE),
+        demultiplex_stats_file=path_util.join(reports_dir, DEMULTIPLEX_STATS_FILE),
         unknown_barcodes_file=top_unknown_barcodes_file,
-        index_hopping_file=path_util.join(report_dir, INDEX_HOPPING_FILE) if make_plot else None,
+        index_hopping_file=path_util.join(reports_dir, INDEX_HOPPING_FILE) if make_plot else None,
         analysis_identifier=flowcell,
         out_pdf=os.path.join(output_dir, f"{flowcell}.barcode_metrics.pdf") if make_plot else None,
         out_log=os.path.join(output_dir, f"{flowcell}.sample_index_report.log"),
@@ -254,7 +252,7 @@ def report_and_validate_sample_indices(report_dir: str, output_dir: str = ".", m
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "report_dir", help="DRAGEN Reports directory, either a local path or a gs:// path.")
+        "reports_dir", help="DRAGEN Reports directory, either a local path or a gs:// path.")
     parser.add_argument(
         "--output-dir", "-o", default=".",
         help="Local directory to which reports are written. Default: %(default)s")
@@ -267,7 +265,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        report_and_validate_sample_indices(args.report_dir, args.output_dir, make_plot=args.plot)
+        report_and_validate_sample_indices(args.reports_dir, args.output_dir, make_plot=args.plot)
     except SampleIndexValidationError as e:
         print(str(e), file=sys.stderr)
         return 1
