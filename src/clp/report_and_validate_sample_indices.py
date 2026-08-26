@@ -182,8 +182,6 @@ def plot_and_validate_sample_index_reports(
     messages.append("For details on unmatched sample indices, see:")
     messages.append(unknown_barcodes_file)
 
-    for message in messages:
-        print(message, file=sys.stderr)
     if out_log:
         with open(out_log, "w") as fh:
             fh.write("\n".join(messages) + "\n")
