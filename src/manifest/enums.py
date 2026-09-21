@@ -43,9 +43,9 @@ class StrandStrategy(Enum):
 
 
 class LocusFunction(Enum):
-    EXONIC = "exonic"
-    INTRONIC = "intronic"
-    EXONIC_INTRONIC = "exonic+intronic"
+    EXONIC = "EXONIC"
+    INTRONIC = "INTRONIC"
+    EXONIC_INTRONIC = "EXONIC_INTRONIC"
 
     @property
     def label(self) -> str:
