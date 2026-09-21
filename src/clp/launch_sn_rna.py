@@ -179,10 +179,11 @@ class LaunchSnRna:
 
     def launch_manifest(self, manifest: Dict[str, Any], args: argparse.Namespace) -> None:
         manifest.update(self.get_tenx_metadata(manifest['version10X'], self.tenx_metadata))
+        library_with_date = manifest['experimentDate'] + '_' + manifest['library']
         if args.output_dir:
             outdir = args.output_dir
         else:
-            outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{manifest['library']}"
+            outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{library_with_date}"
         manifest['outdir'] = outdir
         manifest['email'] = args.email
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
@@ -197,7 +198,7 @@ class LaunchSnRna:
             "--workspace=" + self.project_resources['tower_workspace'],
             args.pipeline,
             "--params-file=" + params_yaml[1],
-            "--name=x" + manifest['experimentDate'] + '_' + manifest['library'],
+            "--name=x" + library_with_date,
         ]
         if args.verbose or args.dry_run:
             print(" ".join(lstCommandLine))
