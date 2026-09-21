@@ -41,6 +41,10 @@ YamlSchemaElement(
     doc="Default: see readiterators.StrandStrategy / GeneFunctionCommandLineBase.DEFAULT_STRAND_STRATEGY",
     tyype=YamlSchemaElementType.ENUM, enum_values=enum_names(StrandStrategy)),
 YamlSchemaElement(
+    "dgeMinReadMq",
+    doc="Minimum mapping quality for reads to be included in DGE counting.  Default: 10",
+    tyype=YamlSchemaElementType.INT),
+YamlSchemaElement(
     "dgeFunctionalStrategy",
     doc="Passed to DigitalExpression FUNCTIONAL_STRATEGY.  Default: DROPSEQ",
     tyype=YamlSchemaElementType.ENUM,
