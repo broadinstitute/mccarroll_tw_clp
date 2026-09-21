@@ -80,13 +80,13 @@ YamlSchemaElement(
 YamlSchemaElement(
     "donor", doc="Name of the donor for a non-dropulation library", tyype=YamlSchemaElementType.STRING),
 YamlSchemaElement(
-    "mapMyCellsQueryMarkers",
-    doc="Path to the query_markers.json to be used by MapMyCells.  It is assumed that there is a "
+    "mmcQueryMarkers",
+    doc="Path to the query_markers.json to be used by MMC.  It is assumed that there is a "
         "corresponding recomputed_stats.h5",
     tyype=YamlSchemaElementType.PATH),
 YamlSchemaElement(
     "mmcArgs",
-    doc="Additional arguments to pass to MapMyCells.",
+    doc="Additional arguments to pass to MMC.",
     tyype=YamlSchemaElementType.STRING,
     list_allowed=True)
 ]
