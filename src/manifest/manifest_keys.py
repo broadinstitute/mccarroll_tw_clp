@@ -46,18 +46,17 @@ lstAlignmentSchemaElements = [
 lstCbrbSchemaElements = [
 YamlSchemaElement(
     "cbrbArgs", doc="Additional arguments to pass to CBRB.  Arguments with values must use an equals sign, e.g. --expected-cells=1000.",
-    tyype=YamlSchemaElementType.DICT, list_allowed=True, validator=YamlPermissiveValidator(),
-    opaque_dict=True),
+    tyype=YamlSchemaElementType.STRING),
 YamlSchemaElement(
     "useSvmParameterEstimation",
     doc="SVM parameter estimation is enabled unless both --expected-cells and --total-droplets-included "
         "appear in cbrbArgs. Set this to false to disable SVM parameter estimation and let CBRB estimate "
         "the parameters itself.",
-    tyype=YamlSchemaElementType.BOOLEAN, required=False),
+    tyype=YamlSchemaElementType.BOOLEAN),
 YamlSchemaElement(
     "forceTwoClusterSolution",
     doc="If true, attempt to find a solution with two clusters. May be useful when data is overloaded.",
-    tyype=YamlSchemaElementType.BOOLEAN, required=False),
+    tyype=YamlSchemaElementType.BOOLEAN),
 ]
 
 lstCellSelectionSchemaElements = [
@@ -67,6 +66,8 @@ lstCellSelectionSchemaElements = [
         "minIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
     YamlSchemaElement(
         "maxIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
+    YamlSchemaElement(
+        "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: true.", tyype=YamlSchemaElementType.BOOLEAN),
 ]
 
 lstStandardAnalysisSchemaElements = [
