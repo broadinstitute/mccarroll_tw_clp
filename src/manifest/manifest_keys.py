@@ -46,8 +46,8 @@ lstAlignmentSchemaElements = [
 lstCbrbSchemaElements = [
 YamlSchemaElement(
     "cbrbArgs", doc="Additional arguments to pass to CBRB.  Arguments with values must use an equals sign, e.g. --expected-cells=1000.",
-    tyype=YamlSchemaElementType.DICT, list_allowed=True, validator=YamlPermissiveValidator(),
-    opaque_dict=True),
+    tyype=YamlSchemaElementType.STRING,
+    required=False),
 YamlSchemaElement(
     "useSvmParameterEstimation",
     doc="SVM parameter estimation is enabled unless both --expected-cells and --total-droplets-included "
