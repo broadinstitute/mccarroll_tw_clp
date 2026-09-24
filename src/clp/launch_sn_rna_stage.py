@@ -53,12 +53,23 @@ def getNextStage(stage: str) -> Optional[str]:
         return stages[index + 1]
     raise LaunchSnRnaError(f"Stage has no downstream stage: {stage}")
 
+# number of directory levels to go up from the properties.yaml file to find the upstream properties.yaml file for each stage
 dctUpstreamStageLevels = {
     StartAt.mmc.name: 2,
     StartAt.dropulation.name: 2,
     StartAt.standard_analysis.name: 1,
     StartAt.cell_selection.name: 2,
     StartAt.cbrb.name: 2,
+    StartAt.alignment.name: 1,
+}
+
+# number of directory levels to go up from the properties.yaml file to find the library directory
+dctLevelsToRoot = {
+    StartAt.mmc.name: 8,
+    StartAt.dropulation.name: 8,
+    StartAt.standard_analysis.name: 6,
+    StartAt.cell_selection.name: 5,
+    StartAt.cbrb.name: 3,
     StartAt.alignment.name: 1,
 }
 
@@ -70,6 +81,16 @@ def getUpstreamPropertiesPath(properties_path: str, levels: int) -> Optional[str
     if not gcs_util.gcs_path_exists(upstream_properties_path):
         raise LaunchSnRnaError(f"Upstream properties file not found: {upstream_properties_path}")
     return upstream_properties_path
+
+def getLibraryDirectoryFromPropertiesPath(properties_path: str, stage: str) -> str:
+    """Return the library directory for the given properties.yaml file and upstream stage."""
+    levels_to_root = dctLevelsToRoot.get(stage)
+    if levels_to_root is None:
+        raise LaunchSnRnaError(f"Upstream stage '{stage}' is not recognized.")
+    library_dir = gcs_util.gcs_parent_dir(properties_path)
+    for _ in range(levels_to_root):
+        library_dir = gcs_util.gcs_parent_dir(library_dir)
+    return library_dir
 
 def loadAllUpstreamProperties(properties_path: str) -> Dict[str, Any]:
     """Load all properties from the given properties.yaml file and all upstream properties.yaml files."""
@@ -122,6 +143,8 @@ class LaunchSnRnaStage(LaunchSnRna):
         super().load_launch_state(args)
         dctProperties = gcs_util.load_gcs_yaml(args.properties)
         upstreamStage = dctProperties['stage']
+        if args.output_dir is None:
+            args.output_dir = getLibraryDirectoryFromPropertiesPath(args.properties, upstreamStage)
         self.start_stage = getNextStage(upstreamStage)
         errors = dctStartAtManifestKeys[self.start_stage].validate_manifest(self.manifest)
         if errors:
