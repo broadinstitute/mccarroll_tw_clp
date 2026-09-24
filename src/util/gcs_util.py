@@ -41,7 +41,7 @@ def _get_storage_client() -> storage.Client:
     return _storage_client
 
 
-def _split_gcs_path(gcs_path: str) -> Tuple[str, str]:
+def split_gcs_path(gcs_path: str) -> Tuple[str, str]:
     match = GCS_PATH_RE.match(gcs_path)
     if not match:
         raise ValueError(f"not a gs:// path: '{gcs_path}'")
@@ -50,13 +50,13 @@ def _split_gcs_path(gcs_path: str) -> Tuple[str, str]:
 
 def gcs_path_is_file(gcs_path: str) -> bool:
     """Return True if gcs_path exists as a file (blob)."""
-    bucket_name, blob_name = _split_gcs_path(gcs_path)
+    bucket_name, blob_name = split_gcs_path(gcs_path)
     return _get_storage_client().bucket(bucket_name).blob(blob_name).exists()
 
 
 def gcs_path_is_dir(gcs_path: str) -> bool:
     """Return True if gcs_path exists as a directory prefix."""
-    bucket_name, blob_name = _split_gcs_path(gcs_path)
+    bucket_name, blob_name = split_gcs_path(gcs_path)
     prefix = blob_name.rstrip("/") + "/"
     return any(True for _ in _get_storage_client().bucket(bucket_name).list_blobs(prefix=prefix, max_results=1))
 
@@ -80,7 +80,7 @@ def require_gcs_dir(gcs_path: str) -> None:
 
 def load_gcs_text(gcs_path: str) -> str:
     """Download a file from Google Cloud Storage and return its contents as text."""
-    bucket_name, blob_name = _split_gcs_path(gcs_path)
+    bucket_name, blob_name = split_gcs_path(gcs_path)
     blob = _get_storage_client().bucket(bucket_name).blob(blob_name)
     if not blob.exists():
         raise Exception(f"gs:// object not found: '{gcs_path}'")
@@ -112,3 +112,18 @@ def load_gcs_csv(gcs_path: str, required_columns: Optional[Iterable[str]] = None
     return list(reader)
 
 
+# get parent directory of a gcs path
+def gcs_parent_dir(gcs_path: str) -> str:
+    """Return the parent directory of a gs:// path."""
+    bucket_name, blob_name = split_gcs_path(gcs_path)
+    if "/" not in blob_name:
+        return f"gs://{bucket_name}"
+    parent_blob = blob_name.rsplit("/", 1)[0]
+    return f"gs://{bucket_name}/{parent_blob}"
+
+# join two gcs paths
+def gcs_join(base_path: str, relative_path: str) -> str:
+    """Join a base gs:// path and a relative path, returning a new gs:// path."""
+    if not base_path.endswith("/"):
+        base_path += "/"
+    return base_path + relative_path.lstrip("/")

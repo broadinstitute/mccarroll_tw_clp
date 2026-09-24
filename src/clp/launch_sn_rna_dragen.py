@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Launch a single-nucleus RNA-seq (snRNA) workflow cascade for each library in Seqera cloud.
+"""Launch a single-nucleus RNA-seq (snRNA) workflow cascade for each library in a DRAGEN run folder in Seqera cloud.
 """
 import argparse
 import copy
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from clp.launch_sn_rna import LaunchSnRna, LaunchSnRnaError, _gcs_path_type
+from clp.launch_sn_rna import LaunchSnRna
+from util.argparse_util import LaunchSnRnaError, gcs_path_type
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
 from manifest.manifest_keys import libraries, libraryDefaults, SnRnaDragenManifestKey, library, experimentDate, rgsm
 from manifest.util.manifest_util import YamlManifestUtil
@@ -28,11 +29,12 @@ class LaunchSnRnaDragen(LaunchSnRna):
     def build_parser(self) -> argparse.ArgumentParser:
         parser = super().build_parser()
         parser.add_argument(
-            "--run-folder", type=_gcs_path_type, metavar="GCS_PATH", required=True,
+            "--run-folder", type=gcs_path_type, metavar="GCS_PATH", required=True,
             help="gs:// path to the Dragen run folder.")
         return parser
 
     def load_launch_state(self, args: argparse.Namespace) -> None:
+        self.load_metadata(args)
         super().load_launch_state(args)
         self.run_folder = args.run_folder.rstrip("/")
         self.fastq_list_path = f"{self.run_folder}/Reports/fastq_list.csv"
