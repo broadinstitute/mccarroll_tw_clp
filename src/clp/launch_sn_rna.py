@@ -3,7 +3,6 @@
 """
 import argparse
 import os
-import re
 import sys
 import getpass
 from pathlib import Path
@@ -18,32 +17,9 @@ from manifest.util.manifest_util import YamlManifestUtil
 from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
+from util.argparse_util import LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
 
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _MODULE_DOC = __doc__
-
-
-class LaunchSnRnaError(Exception):
-    """A user-facing problem with the launch arguments, manifest, or cloud metadata."""
-
-
-def _gcs_path_type(value: str) -> str:
-    if not gcs_util.GCS_PATH_RE.match(value):
-        raise argparse.ArgumentTypeError(f"not a gs:// path: '{value}'")
-    return value
-
-
-def _email_type(value: str) -> str:
-    if not EMAIL_RE.match(value):
-        raise argparse.ArgumentTypeError(f"not a valid email address: '{value}'")
-    return value
-
-
-def _manifest_path_type(value: str) -> Path:
-    path = Path(value)
-    if not path.is_file():
-        raise argparse.ArgumentTypeError(f"manifest file not found: '{path}'")
-    return path
 
 
 class LaunchSnRna:
@@ -63,44 +39,47 @@ class LaunchSnRna:
         self.project_resources: Dict[str, Any] = {}
         self.tenx_metadata: Dict[str, Any] = {}
 
+    def print_manifest_keys(self, out) -> None:
+        print("\nManifest keys:", file=out)
+        documenter = TextYamlManifestDocumenter(out=out)
+        for element in self.manifest_key_class.get_documentation_recursive_roots():
+            documenter.document_element_recursive(element, 0)
+        for element in self.manifest_key_class.get_documentation_non_recursive_roots():
+            documenter.document_element_non_recursive(element, 0)
+
     class _ArgumentParser(argparse.ArgumentParser):
-        def __init__(self, manifest_key_class, *args, **kwargs):
+        def __init__(self, launcher, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self._manifest_key_class = manifest_key_class
+            self._launcher = launcher
 
         def print_help(self, file=None) -> None:
             super().print_help(file)
             out = file if file is not None else sys.stdout
-            print("\nManifest keys:", file=out)
-            documenter = TextYamlManifestDocumenter(out=out)
-            for element in self._manifest_key_class.get_documentation_recursive_roots():
-                documenter.document_element_recursive(element, 0)
-            for element in self._manifest_key_class.get_documentation_non_recursive_roots():
-                documenter.document_element_non_recursive(element, 0)
+            self._launcher.print_manifest_keys(out)
 
     def build_parser(self) -> argparse.ArgumentParser:
-        parser = self._ArgumentParser(self.manifest_key_class, description=self.prog_description)
+        parser = self._ArgumentParser(self, description=self.prog_description)
         parser.add_argument(
-            "manifest", type=_manifest_path_type, nargs="+",
+            "manifest", type=manifest_path_type, nargs="+",
             help="Local yaml manifest file describing the libraries to process.  If more than one manifest file "
                  "is provided, they will be combined with earlier manifest files taking precedence if key collisions.")
         parser.add_argument(
             "--project", required=True,
             help="Project name, used to look up project resources in the project metadata file.")
         parser.add_argument(
-            "--project-metadata", type=_gcs_path_type, metavar="GCS_PATH",
+            "--project-metadata", type=gcs_path_type, metavar="GCS_PATH",
             default="gs://mccarroll_scrnaseq_standard/metadata/project/project_metadata.yaml",
             help="gs:// path to a yaml file containing project resources, keyed by project name. Default: %(default)s)")
         parser.add_argument(
-            "--tenx-metadata", type=_gcs_path_type, metavar="GCS_PATH",
+            "--tenx-metadata", type=gcs_path_type, metavar="GCS_PATH",
             default='gs://mccarroll_scrnaseq_standard/metadata/10X/10X_version_metadata.yaml',
             help="gs:// path to a yaml file containing 10X chemistry version metadata. Default: %(default)s)")
         parser.add_argument(
-            "--email", type=_email_type, metavar="EMAIL",
+            "--email", type=email_type, metavar="EMAIL",
             default=f"{getpass.getuser()}@broadinstitute.org",
             help="Email address of the user launching this workflow. Default: %(default)s)")
         parser.add_argument(
-            "--output-dir", type=_gcs_path_type, metavar="GCS_PATH",
+            "--output-dir", type=gcs_path_type, metavar="GCS_PATH",
             help="gs:// path under which workflow outputs will be written. Default: determined based on project and library")
         parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
                             default=self.default_pipeline)
@@ -167,23 +146,30 @@ class LaunchSnRna:
         dctTenxMetadata = {dctTenx['version10X']: dctTenx for dctTenx in tenx_metadata['versions']}
         return dctTenxMetadata
 
+    def load_metadata(self, args: argparse.Namespace) -> None:
+        self.project_metadata = self.load_project_metadata(args.project_metadata)
+        self.tenx_metadata = self.load_tenx_metadata(args.tenx_metadata)
+
     def load_launch_state(self, args: argparse.Namespace) -> None:
         self.manifest = self.load_and_combine_manifests(args.manifest)
         self.manifests = [self.manifest]
-        project_metadata = self.load_project_metadata(args.project_metadata)
-        self.project_resources = self.resolve_project_resources(project_metadata, args.project)
-        self.tenx_metadata = self.load_tenx_metadata(args.tenx_metadata)
+        self.project_resources = self.resolve_project_resources(self.project_metadata, args.project)
 
     def get_manifests(self) -> List[Dict[str, Any]]:
         return self.manifests
 
+    def getRunName(self, manifest: Dict[str, Any]) -> str:
+        """Return a run name based on the experiment date and library name."""
+        runName = manifest['experimentDate'] + '_' + manifest['library']
+        return runName
+
     def launch_manifest(self, manifest: Dict[str, Any], args: argparse.Namespace) -> None:
         manifest.update(self.get_tenx_metadata(manifest['version10X'], self.tenx_metadata))
-        library_with_date = manifest['experimentDate'] + '_' + manifest['library']
+        runName = self.getRunName(manifest)
         if args.output_dir:
             outdir = args.output_dir
         else:
-            outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{library_with_date}"
+            outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{runName}"
         manifest['outdir'] = outdir
         manifest['email'] = args.email
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
@@ -193,12 +179,14 @@ class LaunchSnRna:
             yaml.safe_dump(manifest, f, default_flow_style=False, sort_keys=False)
         if args.verbose:
             print("Wrote manifest to " + params_yaml[1])
+        if runName[0].isdigit():
+            runName = 'x' + runName
         lstCommandLine = [
             args.tw, "launch",
             "--workspace=" + self.project_resources['tower_workspace'],
             args.pipeline,
             "--params-file=" + params_yaml[1],
-            "--name=x" + library_with_date,
+            "--name=" + runName,
         ]
         if args.verbose or args.dry_run:
             print(" ".join(lstCommandLine))
@@ -207,6 +195,7 @@ class LaunchSnRna:
 
     def main(self, argv: Optional[List[str]] = None) -> int:
         args = self.parse_args(argv)
+        self.load_metadata(args)
         self.load_launch_state(args)
         errors = self.manifest_key_class.validate_manifest(self.manifest)
         if errors:

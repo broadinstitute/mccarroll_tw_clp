@@ -10,6 +10,7 @@ plot = ["matplotlib"]
 [project.scripts]
 launchSnRna = "clp.launch_sn_rna:main"
 launchSnRnaDragen = "clp.launch_sn_rna_dragen:main"
+launchSnRnaStage = "clp.launch_sn_rna_stage:main"
 reportAndValidateSampleIndices = "clp.report_and_validate_sample_indices:main"
 
 [build-system]

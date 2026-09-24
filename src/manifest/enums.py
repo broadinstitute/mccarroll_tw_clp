@@ -5,12 +5,12 @@ codebase (in the `workflows` and `dropseqrna` packages), but the yaml schema def
 being translated here depend on their member names, so minimal equivalents are provided.
 """
 from enum import Enum
-from typing import Set, Type
+from typing import List, Type
 
 
-def enum_names(enum_cls: Type[Enum]) -> Set[str]:
-    """Equivalent of Scala's EnumClass.values().map(_.name()).toSet"""
-    return {member.name for member in enum_cls}
+def enum_names(enum_cls: Type[Enum]) -> List[str]:
+    """Equivalent of Scala's EnumClass.values().map(_.name()), in declaration order."""
+    return [member.name for member in enum_cls]
 
 
 class YamlSchemaElementType(Enum):
@@ -50,3 +50,11 @@ class LocusFunction(Enum):
     @property
     def label(self) -> str:
         return self.value
+
+class StartAt(Enum):
+    alignment = "alignment"
+    cbrb = "cbrb"
+    cell_selection = "cell_selection"
+    standard_analysis = "standard_analysis"
+    dropulation = "dropulation"
+    mmc = "mmc"
