@@ -2,16 +2,18 @@
 """Summarize and validate the sample index situation for a sequencing run, from bcl-convert's
 demultiplexing reports.  Reports directory can be either in local file system or google bucket.
 
-Report output (csv/tsv/log/pdf) is always written locally.
+Report output (csv/tsv/log/pdf) can be written either to a local directory or a gs:// bucket.
 """
 import argparse
 import csv
 import os
 import re
 import sys
+import tempfile
 from typing import Dict, List, Optional, Tuple
 from xml.etree import ElementTree
 
+from util import gcs_util
 from util import path_util
 
 DEMULTIPLEX_STATS_FILE = "Demultiplex_Stats.csv"
@@ -129,6 +131,7 @@ def plot_and_validate_sample_index_reports(
         analysis_identifier: Optional[str] = None,
         out_pdf: Optional[str] = None,
         out_log: Optional[str] = None,
+        unknown_barcodes_display_path: Optional[str] = None,
 ) -> List[str]:
     """Determine whether the sample index situation looks reasonable, logging the result. If there is a
     problem, the returned messages (and out_pdf, if given) will call it out.
@@ -139,6 +142,9 @@ def plot_and_validate_sample_index_reports(
     :param analysis_identifier: used in the PDF title
     :param out_pdf: if given, a PDF bar chart of reads per library is written here
     :param out_log: if given, the returned messages are also written to this file
+    :param unknown_barcodes_display_path: path reported in the returned messages for unknown_barcodes_file,
+        useful when unknown_barcodes_file is a local staging copy of a file that will end up elsewhere
+        (e.g. a gs:// path). Defaults to unknown_barcodes_file.
     :return: messages describing the sample index situation
     """
     demultiplex_rows = path_util.load_csv_rows(
@@ -180,7 +186,7 @@ def plot_and_validate_sample_index_reports(
         f"{100 * frac_all_g:.1f}%{EXCEEDS_THRESHOLD if frac_all_g_exceeds_threshold else ''}"
     )
     messages.append("For details on unmatched sample indices, see:")
-    messages.append(unknown_barcodes_file)
+    messages.append(unknown_barcodes_display_path or unknown_barcodes_file)
 
     if out_log:
         with open(out_log, "w") as fh:
@@ -220,26 +226,39 @@ def report_and_validate_sample_indices(reports_dir: str, output_dir: str = ".", 
 
     :param run_folder: run folder, either a local path or a gs:// path. Must contain RunInfo.xml and a
         fastq/Reports subdirectory containing bcl-convert's demultiplexing reports.
-    :param output_dir: local directory to which reports are written.
+    :param output_dir: local or gs:// directory to which reports are written.
     :param make_plot: if True, also write a PDF bar chart of reads per library.
     :raise SampleIndexValidationError: if the sample index metrics exceed an acceptable threshold.
     """
     reports_dir = reports_dir.rstrip("/")
     flowcell = _extract_flowcell(path_util.read_text(path_util.join(reports_dir, "RunInfo.xml")))
 
-    top_unknown_barcodes_file = os.path.join(output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv")
-    summarize_top_unknown_barcodes(out_file=top_unknown_barcodes_file, reports_dir=reports_dir)
-    summarize_demultiplex_stats(
-        out_file=os.path.join(output_dir, f"{flowcell}.Demultiplex_Stats.tsv"), reports_dir=reports_dir)
+    output_is_gcs = path_util.is_gcs_path(output_dir)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Reports are always built on the local filesystem first (csv/matplotlib need real file paths),
+        # then uploaded to output_dir if it's a gs:// path.
+        local_output_dir = tmp_dir if output_is_gcs else output_dir
 
-    messages = plot_and_validate_sample_index_reports(
-        demultiplex_stats_file=path_util.join(reports_dir, DEMULTIPLEX_STATS_FILE),
-        unknown_barcodes_file=top_unknown_barcodes_file,
-        index_hopping_file=path_util.join(reports_dir, INDEX_HOPPING_FILE) if make_plot else None,
-        analysis_identifier=flowcell,
-        out_pdf=os.path.join(output_dir, f"{flowcell}.barcode_metrics.pdf") if make_plot else None,
-        out_log=os.path.join(output_dir, f"{flowcell}.sample_index_report.log"),
-    )
+        top_unknown_barcodes_file = os.path.join(local_output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv")
+        summarize_top_unknown_barcodes(out_file=top_unknown_barcodes_file, reports_dir=reports_dir)
+        summarize_demultiplex_stats(
+            out_file=os.path.join(local_output_dir, f"{flowcell}.Demultiplex_Stats.tsv"), reports_dir=reports_dir)
+
+        messages = plot_and_validate_sample_index_reports(
+            demultiplex_stats_file=path_util.join(reports_dir, DEMULTIPLEX_STATS_FILE),
+            unknown_barcodes_file=top_unknown_barcodes_file,
+            index_hopping_file=path_util.join(reports_dir, INDEX_HOPPING_FILE) if make_plot else None,
+            analysis_identifier=flowcell,
+            out_pdf=os.path.join(local_output_dir, f"{flowcell}.barcode_metrics.pdf") if make_plot else None,
+            out_log=os.path.join(local_output_dir, f"{flowcell}.sample_index_report.log"),
+            unknown_barcodes_display_path=path_util.join(
+                output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv") if output_is_gcs else None,
+        )
+
+        if output_is_gcs:
+            for filename in os.listdir(local_output_dir):
+                gcs_util.upload_gcs_file(
+                    path_util.join(output_dir, filename), os.path.join(local_output_dir, filename))
 
     concatenated_messages = "\n".join(messages)
     if any(EXCEEDS_THRESHOLD in message for message in messages):
@@ -253,7 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
         "reports_dir", help="DRAGEN Reports directory, either a local path or a gs:// path.")
     parser.add_argument(
         "--output-dir", "-o", default=".",
-        help="Local directory to which reports are written. Default: %(default)s")
+        help="Local or gs:// directory to which reports are written. Default: %(default)s")
     parser.add_argument(
         "--plot", action="store_true", default=False,
         help="Also write a PDF bar chart of reads per library (requires matplotlib).")
