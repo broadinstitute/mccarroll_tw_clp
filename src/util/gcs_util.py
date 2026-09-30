@@ -121,6 +121,12 @@ def gcs_parent_dir(gcs_path: str) -> str:
     parent_blob = blob_name.rsplit("/", 1)[0]
     return f"gs://{bucket_name}/{parent_blob}"
 
+def upload_gcs_file(gcs_path: str, local_path: str) -> None:
+    """Upload a local file to Google Cloud Storage."""
+    bucket_name, blob_name = split_gcs_path(gcs_path)
+    _get_storage_client().bucket(bucket_name).blob(blob_name).upload_from_filename(local_path)
+
+
 # join two gcs paths
 def gcs_join(base_path: str, relative_path: str) -> str:
     """Join a base gs:// path and a relative path, returning a new gs:// path."""
