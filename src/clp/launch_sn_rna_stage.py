@@ -111,12 +111,13 @@ class LaunchSnRnaStage(LaunchSnRna):
     prog_description = _MODULE_DOC
 
     def print_manifest_keys(self, out) -> None:
-        print("\nManifest keys by stage.  Note that downstream manifest keys are allowed:", file=out)
+        print("\nManifest keys by stage.  Manifest keys should be at top level.  They are grouped below by stage for clarity.  "
+              "Note that downstream manifest keys are allowed:", file=out)
         documenter = TextYamlManifestDocumenter(out=out)
         for stage in enum_names(StartAt):
             print(f"\nStage: {stage}", file=out)
             for element in dctStageSchemaElements.get(stage, []):
-                documenter.document_element_recursive(element, 1)
+                documenter.document_element_recursive(element, 0)
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = super().build_parser()
