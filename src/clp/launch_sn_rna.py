@@ -18,6 +18,7 @@ from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
 from util.argparse_util import LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
+from util.reference_metadata_util import validateReference
 
 _MODULE_DOC = __doc__
 
@@ -174,6 +175,8 @@ class LaunchSnRna:
         manifest['email'] = args.email
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
             gcs_util.require_gcs_file(fastq)
+        if 'reference' in manifest:
+            validateReference(manifest['reference'])
         params_yaml = tempfile.mkstemp(suffix=".yaml", prefix=manifest['library'] + '.', text=True)
         with os.fdopen(params_yaml[0], "w") as f:
             yaml.safe_dump(manifest, f, default_flow_style=False, sort_keys=False)

@@ -7,22 +7,17 @@ from manifest.enums import (
     enum_names,
     StartAt
 )
-from manifest.util.schema_element import YamlSchemaElement
-from manifest.util.validators import YamlPermissiveValidator
 from manifest.enums import YamlSchemaElementType
 from manifest.util.abstract_manifest_key import AbstractManifestKey
-
-
-
-
-
+from manifest.util.schema_element import YamlSchemaElement
 
 _THRESHOLD_DOC = ("Optional cell selection threshold.  If any threshold is specified, automatic methods "
                   "will not be used.")
 
 lstAlignmentSchemaElements = [
     YamlSchemaElement(
-        "reference", required=True, doc="Reference fasta(.gz).", tyype=YamlSchemaElementType.PATH),
+        "reference", required=True, doc="Either a path to a reference fasta.gz, "
+                                        "or the name of a reference from which the fasta.gz is found.", tyype=YamlSchemaElementType.STRING),
     YamlSchemaElement(
         "locusFunction",
         doc=f"Default: {LocusFunction.EXONIC_INTRONIC.label}",
