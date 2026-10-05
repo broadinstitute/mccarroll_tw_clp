@@ -71,6 +71,7 @@ dctLevelsToRoot = {
     StartAt.cell_selection.name: 5,
     StartAt.cbrb.name: 3,
     StartAt.alignment.name: 1,
+    'beginning': 0,
 }
 
 def getUpstreamPropertiesPath(properties_path: str, levels: int) -> Optional[str]:
