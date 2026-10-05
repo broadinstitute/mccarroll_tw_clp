@@ -20,14 +20,37 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from typing import Dict, Optional
+
 from util import gcs_util
 
-ReferenceMap = {
-    'GRCh38-2020-A': 'gs://mccarroll_scrnaseq_standard/metadata/reference/GRCh38-2020-A/GRCh38-2020-A.fasta.gz',
-    'GRCh38_ensembl_v43': 'gs://mccarroll_scrnaseq_standard/metadata/reference/GRCh38_ensembl_v43/GRCh38_ensembl_v43.fasta.gz',
-    'GRCh38_maskedAlt': 'gs://mccarroll_scrnaseq_standard/metadata/reference/GRCh38_maskedAlt/GRCh38_maskedAlt.fasta.gz',
-    'm38': 'gs://mccarroll_scrnaseq_standard/metadata/reference/m38/m38.fasta.gz'
-}
+ReferenceParents = [
+'gs://mccarroll_scrnaseq_standard/metadata/reference'
+]
+
+_reference_map: Optional[Dict[str, str]] = None
+
+
+def _build_reference_map() -> Dict[str, str]:
+    """Scan ReferenceParents for files of the form <referenceParent>/<referenceName>/*.fasta.gz,
+    and build a map from referenceName to its gs:// path."""
+    reference_map: Dict[str, str] = {}
+    for parent in ReferenceParents:
+        parent_prefix = parent.rstrip('/') + '/'
+        for gcs_path in gcs_util.list_gcs_paths(parent):
+            relative = gcs_path[len(parent_prefix):]
+            parts = relative.split('/')
+            if len(parts) == 2 and parts[1].endswith('.fasta.gz'):
+                reference_map.setdefault(parts[0], gcs_path)
+    return reference_map
+
+
+def _get_reference_map() -> Dict[str, str]:
+    global _reference_map
+    if _reference_map is None:
+        _reference_map = _build_reference_map()
+    return _reference_map
+
 
 def validateReference(reference: str) -> None:
     """
@@ -39,10 +62,11 @@ def validateReference(reference: str) -> None:
     """
     if '/' in reference:
         gcs_path = reference
-    elif reference in ReferenceMap:
-        gcs_path = ReferenceMap[reference]
     else:
-        raise ValueError(f"Reference name '{reference}' not recognized.")
+        reference_map = _get_reference_map()
+        if reference not in reference_map:
+            raise ValueError(f"Reference name '{reference}' not recognized.")
+        gcs_path = reference_map[reference]
     if not gcs_util.gcs_path_is_file(gcs_path):
         raise ValueError(
             f"Reference '{gcs_path}' does not exist as a file in GCS.")
