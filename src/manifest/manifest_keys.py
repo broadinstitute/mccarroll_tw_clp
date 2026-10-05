@@ -57,6 +57,10 @@ YamlSchemaElement(
     "forceTwoClusterSolution",
     doc="If true, attempt to find a solution with two clusters. May be useful when data is overloaded.",
     tyype=YamlSchemaElementType.BOOLEAN),
+YamlSchemaElement(
+    "skipCbrb",
+    doc="If true, do not run CBRB.",
+    tyype=YamlSchemaElementType.BOOLEAN),
 ]
 
 lstCellSelectionSchemaElements = [
