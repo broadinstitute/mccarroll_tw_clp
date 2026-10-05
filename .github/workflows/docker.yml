@@ -81,7 +81,7 @@ jobs:
           build-args: |
             SRCVERSION=${{ steps.build-variables.outputs.srcversion }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
           # Stop buildx from pushing provenance files for our images.
           # https://docs.docker.com/build/ci/github-actions/attestations/#default-provenance
           # https://github.com/docker/setup-buildx-action/issues/187#issuecomment-1398199592
