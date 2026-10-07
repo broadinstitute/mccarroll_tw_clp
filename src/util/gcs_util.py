@@ -127,6 +127,14 @@ def upload_gcs_file(gcs_path: str, local_path: str) -> None:
     _get_storage_client().bucket(bucket_name).blob(blob_name).upload_from_filename(local_path)
 
 
+def list_gcs_paths(gcs_dir_path: str) -> List[str]:
+    """List the gs:// paths of all files (blobs) under a directory prefix, recursively."""
+    bucket_name, blob_prefix = split_gcs_path(gcs_dir_path)
+    prefix = blob_prefix.rstrip("/") + "/"
+    return [f"gs://{bucket_name}/{blob.name}"
+            for blob in _get_storage_client().bucket(bucket_name).list_blobs(prefix=prefix)]
+
+
 # join two gcs paths
 def gcs_join(base_path: str, relative_path: str) -> str:
     """Join a base gs:// path and a relative path, returning a new gs:// path."""
