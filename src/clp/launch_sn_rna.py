@@ -17,6 +17,7 @@ from manifest.util.manifest_util import YamlManifestUtil
 from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
+from util import misc_util
 from util.argparse_util import LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
 from util.reference_metadata_util import validateReference
 
@@ -164,7 +165,18 @@ class LaunchSnRna:
         runName = manifest['experimentDate'] + '_' + manifest['library']
         return runName
 
+    def force_lists(self, manifest: Dict[str, Any]) -> None:
+        """Force list_allowed manifest keys to be lists, even if the manifest has a single value.
+        Note that this is done using SnRnaManifestKey rather than the manifest_key_class,
+        because the dragen manifest has been converted into multiple SnRnaManifestKey manifests at this point,
+        so SnRnaManifestKey defines the requirements."""
+        for key in SnRnaManifestKey.root_elements_no_downstream():
+            elementName = key.name
+            if key.list_allowed and elementName in manifest:
+                manifest[elementName] = misc_util.force_list(manifest[elementName])
+
     def launch_manifest(self, manifest: Dict[str, Any], args: argparse.Namespace) -> None:
+        self.force_lists(manifest)
         manifest.update(self.get_tenx_metadata(manifest['version10X'], self.tenx_metadata))
         runName = self.getRunName(manifest)
         if args.output_dir:
