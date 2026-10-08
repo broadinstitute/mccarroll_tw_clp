@@ -7,7 +7,16 @@
 2. [Install uv](https://docs.astral.sh/uv/getting-started/installation/#installing-uv) if not already installed.
 3. [Install git](https://git-scm.com/install/) if  not already installed.
 ## Running
-Run one of the command-line tools (currently there is only one):
+Run one of the command-line tools:
 ```
-uvx --from 'https://git@github.com/broadinstitute/mccarroll_tw_clp.git' launchSnRna -h
+uvx --from 'https://git@github.com/broadinstitute/mccarroll_tw_clp.git' <name> -h
 ```
+where `<name>` is one of:
+- launchSnRna: launch an snRNA-seq pipeline in Seqera cloud starting with FASTQ files.
+- launchSnRnaDragen: launch one or more snRNA-seq pipelines in Seqera cloud starting 
+with DRAGEN output.
+- launchSnRnaStage: launch an snRNA-seq pipeline in Seqera cloud starting in 
+the middle of the workflow based on existing snRNA output.
+- reportAndValidateSampleIndices: generate a report of sample indices and validate 
+that distribution of reads between libraries is reasonably even, and that not too many 
+sample indices are unknown.
