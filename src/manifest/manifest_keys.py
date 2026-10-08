@@ -16,8 +16,15 @@ _THRESHOLD_DOC = ("Optional cell selection threshold.  If any threshold is speci
 
 lstAlignmentSchemaElements = [
     YamlSchemaElement(
-        "reference", required=True, doc="Either a path to a reference fasta.gz, "
-                                        "or the name of a reference from which the fasta.gz is found.", tyype=YamlSchemaElementType.STRING),
+        "reference", required=True,
+        doc="Either a path to a reference fasta.gz, or the name of a reference from which the fasta.gz is found.",
+        tyype=YamlSchemaElementType.STRING),
+    YamlSchemaElement(
+        "referenceOverride",
+        doc="<slot>:<path> causes reference metadata <slot> to be replaced with <path>. "
+            "<slot>=null causes the slot to be set to null.",
+        tyype=YamlSchemaElementType.STRING,
+        list_allowed=True),
     YamlSchemaElement(
         "locusFunction",
         doc=f"Default: {LocusFunction.EXONIC_INTRONIC.label}",
@@ -93,9 +100,9 @@ lstMmcSchemaElements = [
         tyype=YamlSchemaElementType.PATH),
     YamlSchemaElement(
         "mmcArgs",
-        doc="Additional arguments to pass to MMC.",
-        tyype=YamlSchemaElementType.STRING,
-        list_allowed=True)
+        doc="Additional arguments to pass to MMC. A single string with space-separated arguments. "
+            "Arguments with values must use an equals sign, e.g. '--expected-cells=1000 --total-droplets-included=2000'.",
+        tyype=YamlSchemaElementType.STRING)
 ]
 
 dctStageSchemaElements = {
