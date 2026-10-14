@@ -73,7 +73,7 @@ lstCellSelectionSchemaElements = [
     YamlSchemaElement(
         "maxIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
     YamlSchemaElement(
-        "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: true.", tyype=YamlSchemaElementType.BOOLEAN),
+        "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: false.", tyype=YamlSchemaElementType.BOOLEAN),
 ]
 
 lstStandardAnalysisSchemaElements = [
