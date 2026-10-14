@@ -43,6 +43,11 @@ lstAlignmentSchemaElements = [
         doc="Passed to DigitalExpression FUNCTIONAL_STRATEGY.  Default: DROPSEQ",
         tyype=YamlSchemaElementType.ENUM,
         enum_values=enum_names(FunctionalDataProcessorStrategy)),
+    YamlSchemaElement(
+        "starAlignVersion",
+        doc="Tell workflow the version of STAR aligner so that it can find a compatible index in the reference bundle.  "
+            "Default: discover the version automatically.",
+        tyype=YamlSchemaElementType.STRING),
 ]
 
 lstCbrbSchemaElements = [
