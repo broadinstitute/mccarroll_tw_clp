@@ -43,6 +43,11 @@ lstAlignmentSchemaElements = [
         doc="Passed to DigitalExpression FUNCTIONAL_STRATEGY.  Default: DROPSEQ",
         tyype=YamlSchemaElementType.ENUM,
         enum_values=enum_names(FunctionalDataProcessorStrategy)),
+    YamlSchemaElement(
+        "starAlignVersion",
+        doc="Tell workflow the version of STAR aligner so that it can find a compatible index in the reference bundle.  "
+            "Default: discover the version automatically.",
+        tyype=YamlSchemaElementType.STRING),
 ]
 
 lstCbrbSchemaElements = [
@@ -73,7 +78,7 @@ lstCellSelectionSchemaElements = [
     YamlSchemaElement(
         "maxIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
     YamlSchemaElement(
-        "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: true.", tyype=YamlSchemaElementType.BOOLEAN),
+        "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: false.", tyype=YamlSchemaElementType.BOOLEAN),
 ]
 
 lstStandardAnalysisSchemaElements = [
