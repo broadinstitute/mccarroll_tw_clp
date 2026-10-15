@@ -33,7 +33,7 @@ import argparse
 
 from clp.launch_sn_rna import LaunchSnRna
 from manifest.util.documenter import TextYamlManifestDocumenter
-from manifest.enums import StartAt, enum_names
+from manifest.enums import Stage, enum_names
 from manifest.manifest_keys import dctStageSchemaElements, dctStartAtManifestKeys
 from util import gcs_util
 from util.argparse_util import gcs_path_type, LaunchSnRnaError
@@ -42,7 +42,7 @@ _MODULE_DOC = __doc__
 
 def getNextStage(stage: str) -> Optional[str]:
     """Return the next stage after the given stage, or None if there is no next stage."""
-    stages = list(enum_names(StartAt))
+    stages = list(enum_names(Stage))
     if stage == 'beginning':
         return stages[0]
     try:
@@ -55,22 +55,22 @@ def getNextStage(stage: str) -> Optional[str]:
 
 # number of directory levels to go up from the properties.yaml file to find the upstream properties.yaml file for each stage
 dctUpstreamStageLevels = {
-    StartAt.mmc.name: 2,
-    StartAt.dropulation.name: 2,
-    StartAt.standard_analysis.name: 1,
-    StartAt.cell_selection.name: 2,
-    StartAt.cbrb.name: 2,
-    StartAt.alignment.name: 1,
+    Stage.mmc.name: 2,
+    Stage.dropulation.name: 2,
+    Stage.standard_analysis.name: 1,
+    Stage.cell_selection.name: 2,
+    Stage.cbrb.name: 2,
+    Stage.alignment.name: 1,
 }
 
 # number of directory levels to go up from the properties.yaml file to find the library directory
 dctLevelsToRoot = {
-    StartAt.mmc.name: 8,
-    StartAt.dropulation.name: 8,
-    StartAt.standard_analysis.name: 6,
-    StartAt.cell_selection.name: 5,
-    StartAt.cbrb.name: 3,
-    StartAt.alignment.name: 1,
+    Stage.mmc.name: 8,
+    Stage.dropulation.name: 8,
+    Stage.standard_analysis.name: 6,
+    Stage.cell_selection.name: 5,
+    Stage.cbrb.name: 3,
+    Stage.alignment.name: 1,
     'beginning': 0,
 }
 
@@ -115,7 +115,7 @@ class LaunchSnRnaStage(LaunchSnRna):
         print("\nManifest keys by stage.  Manifest keys should be at top level.  They are grouped below by stage for clarity.  "
               "Note that downstream manifest keys are allowed:", file=out)
         documenter = TextYamlManifestDocumenter(out=out)
-        for stage in enum_names(StartAt):
+        for stage in enum_names(Stage):
             print(f"\nStage: {stage}", file=out)
             for element in dctStageSchemaElements.get(stage, []):
                 documenter.document_element_recursive(element, 0)

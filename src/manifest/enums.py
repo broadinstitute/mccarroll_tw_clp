@@ -51,7 +51,7 @@ class LocusFunction(Enum):
     def label(self) -> str:
         return self.value
 
-class StartAt(Enum):
+class Stage(Enum):
     alignment = "alignment"
     cbrb = "cbrb"
     cell_selection = "cell_selection"
