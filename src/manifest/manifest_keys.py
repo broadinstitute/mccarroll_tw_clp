@@ -5,7 +5,7 @@ from manifest.enums import (
     LocusFunction,
     StrandStrategy,
     enum_names,
-    StartAt
+    Stage
 )
 from manifest.enums import YamlSchemaElementType
 from manifest.util.abstract_manifest_key import AbstractManifestKey
@@ -111,12 +111,12 @@ lstMmcSchemaElements = [
 ]
 
 dctStageSchemaElements = {
-    StartAt.alignment.value: lstAlignmentSchemaElements,
-    StartAt.cbrb.value: lstCbrbSchemaElements,
-    StartAt.cell_selection.value: lstCellSelectionSchemaElements,
-    StartAt.standard_analysis.value: lstStandardAnalysisSchemaElements,
-    StartAt.dropulation.value: lstDropulationSchemaElements,
-    StartAt.mmc.value: lstMmcSchemaElements,
+    Stage.alignment.value: lstAlignmentSchemaElements,
+    Stage.cbrb.value: lstCbrbSchemaElements,
+    Stage.cell_selection.value: lstCellSelectionSchemaElements,
+    Stage.standard_analysis.value: lstStandardAnalysisSchemaElements,
+    Stage.dropulation.value: lstDropulationSchemaElements,
+    Stage.mmc.value: lstMmcSchemaElements,
 }
 
 
@@ -207,14 +207,14 @@ def makeStartAtManifestKey(startAt: str, schemaElements: List[YamlSchemaElement]
 # Iterate over the StartAt enum to create a manifest key class for each value
 dctStartAtManifestKeys = {}
 _lstStartAtSchemaElements = lstMmcSchemaElements
-dctStartAtManifestKeys[StartAt.mmc.value] = makeStartAtManifestKey(StartAt.mmc.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.mmc.value] = makeStartAtManifestKey(Stage.mmc.value, _lstStartAtSchemaElements)
 _lstStartAtSchemaElements = lstDropulationSchemaElements + _lstStartAtSchemaElements
-dctStartAtManifestKeys[StartAt.dropulation.value] = makeStartAtManifestKey(StartAt.dropulation.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.dropulation.value] = makeStartAtManifestKey(Stage.dropulation.value, _lstStartAtSchemaElements)
 _lstStartAtSchemaElements = lstStandardAnalysisSchemaElements + _lstStartAtSchemaElements
-dctStartAtManifestKeys[StartAt.standard_analysis.value] = makeStartAtManifestKey(StartAt.standard_analysis.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.standard_analysis.value] = makeStartAtManifestKey(Stage.standard_analysis.value, _lstStartAtSchemaElements)
 _lstStartAtSchemaElements = lstCellSelectionSchemaElements + _lstStartAtSchemaElements
-dctStartAtManifestKeys[StartAt.cell_selection.value] = makeStartAtManifestKey(StartAt.cell_selection.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.cell_selection.value] = makeStartAtManifestKey(Stage.cell_selection.value, _lstStartAtSchemaElements)
 _lstStartAtSchemaElements = lstCbrbSchemaElements + _lstStartAtSchemaElements
-dctStartAtManifestKeys[StartAt.cbrb.value] = makeStartAtManifestKey(StartAt.cbrb.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.cbrb.value] = makeStartAtManifestKey(Stage.cbrb.value, _lstStartAtSchemaElements)
 _lstStartAtSchemaElements = lstAlignmentSchemaElements + _lstStartAtSchemaElements
-dctStartAtManifestKeys[StartAt.alignment.value] = makeStartAtManifestKey(StartAt.alignment.value, _lstStartAtSchemaElements)
+dctStartAtManifestKeys[Stage.alignment.value] = makeStartAtManifestKey(Stage.alignment.value, _lstStartAtSchemaElements)

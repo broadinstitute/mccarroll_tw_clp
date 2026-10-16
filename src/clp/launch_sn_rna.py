@@ -14,6 +14,7 @@ import subprocess
 
 from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.util.manifest_util import YamlManifestUtil
+from manifest.enums import Stage, enum_names
 from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
@@ -83,6 +84,9 @@ class LaunchSnRna:
         parser.add_argument(
             "--output-dir", type=gcs_path_type, metavar="GCS_PATH",
             help="gs:// path under which workflow outputs will be written. Default: determined based on project and library")
+        parser.add_argument(
+            "--stop-at", choices=enum_names(Stage), metavar="STAGE",
+            help="Optional. Stop the pipeline(s) after this stage. Must be one of: %(choices)s.")
         parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
                             default=self.default_pipeline)
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
@@ -185,6 +189,8 @@ class LaunchSnRna:
             outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{runName}"
         manifest['outdir'] = outdir
         manifest['email'] = args.email
+        if args.stop_at:
+            manifest['stop_at'] = args.stop_at
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
             gcs_util.require_gcs_file(fastq)
         if 'reference' in manifest:
