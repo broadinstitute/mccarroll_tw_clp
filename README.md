@@ -17,6 +17,8 @@ where `<name>` is one of:
 with DRAGEN output.
 - launchSnRnaStage: launch an snRNA-seq pipeline in Seqera cloud starting in 
 the middle of the workflow based on existing snRNA output.
+- launchScrnaAggregation: launch the scRNA aggregation pipeline in Seqera cloud to merge
+the DGEs of several libraries, as listed in a YAML aggregation manifest.
 - reportAndValidateSampleIndices: generate a report of sample indices and validate 
 that distribution of reads between libraries is reasonably even, and that not too many 
 sample indices are unknown.
