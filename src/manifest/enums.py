@@ -52,6 +52,7 @@ class LocusFunction(Enum):
         return self.value
 
 class Stage(Enum):
+    beginning = "beginning"
     alignment = "alignment"
     cbrb = "cbrb"
     cell_selection = "cell_selection"

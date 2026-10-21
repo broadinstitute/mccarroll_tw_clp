@@ -18,9 +18,9 @@ from manifest.enums import Stage, enum_names
 from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
-from util import misc_util
+from util import misc_util, output_label_util
 from util.argparse_util import LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
-from util.reference_metadata_util import validateReference
+from util.reference_metadata_util import validateReference, getReferenceName
 
 _MODULE_DOC = __doc__
 
@@ -41,6 +41,13 @@ class LaunchSnRna:
         self.manifest: Dict[str, Any] = {}
         self.project_resources: Dict[str, Any] = {}
         self.tenx_metadata: Dict[str, Any] = {}
+        self.stages: List[str] = enum_names(Stage)
+
+    def stage_index(self, stage: str) -> int:
+        """Return the index of the given stage in the stages list."""
+        if stage not in self.stages:
+            raise LaunchSnRnaError(f"Invalid stage: {stage}")
+        return self.stages.index(stage)
 
     def print_manifest_keys(self, out) -> None:
         print("\nManifest keys:", file=out)
@@ -89,6 +96,8 @@ class LaunchSnRna:
             help="Optional. Stop the pipeline(s) after this stage. Must be one of: %(choices)s.")
         parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
                             default=self.default_pipeline)
+        parser.add_argument("--allow-overwrite", "-f", action="store_true", default=False,
+                            help="Allow overwriting existing output directories. Default: %(default)s")
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
         parser.add_argument("--dry-run", action="store_true",default=False,help="Don't actually run the workflow")
         parser.add_argument("--tw", default="tw",
@@ -179,9 +188,53 @@ class LaunchSnRna:
             if key.list_allowed and elementName in manifest:
                 manifest[elementName] = misc_util.force_list(manifest[elementName])
 
+    def get_output_subdirectory(self, manifest: Dict[str, Any]) -> str:
+        """Return the output subdirectory for the given manifest, based on the start_at stage and any labels."""
+        outputSubDir = manifest['outdir']
+        start_at = manifest.get('start_at', Stage.beginning.name)
+        startAtIndex = self.stage_index(start_at)
+        if startAtIndex >= self.stage_index(Stage.alignment.name):
+            outputSubDir = outputSubDir + "/" + getReferenceName(manifest['reference'])
+        if startAtIndex >= self.stage_index(Stage.cbrb.name):
+            outputSubDir = outputSubDir + "/cbrb/" + manifest['cbrb_label']
+        if startAtIndex >= self.stage_index(Stage.cell_selection.name):
+            outputSubDir = outputSubDir + "/cell_selection/" + manifest['cell_selection_label']
+        if startAtIndex >= self.stage_index(Stage.standard_analysis.name):
+            outputSubDir = outputSubDir + "/standard_analysis"
+        if startAtIndex == self.stage_index(Stage.dropulation.name):
+            if 'dropulation_label' in manifest:
+                outputSubDir = outputSubDir + "/village/" + manifest['dropulation_label']
+            elif 'mmc_label' in manifest:
+                outputSubDir = outputSubDir + "/mmc/" + manifest['mmc_label']
+        elif startAtIndex == self.stage_index(Stage.mmc.name):
+            if  'mmc_label' not in manifest:
+                raise LaunchSnRnaError("Unpossible! mmc_label not in manifest when starting at mmc stage")
+            outputSubDir = outputSubDir + "/mmc/" + manifest['mmc_label']
+        return outputSubDir
+
+    def check_preexisting(self, manifest: Dict[str, Any], allow_overwrite: bool, outputSubDir: str) -> None:
+        """Check if the output directory already exists. If it does and --allow-overwrite is not set, raise an error."""
+        self.check_preexisting_directory(allow_overwrite, outputSubDir)
+        start_at = manifest.get('start_at', Stage.beginning.name)
+        startAtIndex = self.stage_index(start_at)
+        if startAtIndex == self.stage_index(Stage.dropulation.name) and 'mmc_label' in manifest:
+            # mmc and dropulation are unusual in that one is not nested in the other, so go up 2 levels from outputSubDir to check for the mmc directory
+            dirToCheck = gcs_util.gcs_parent_dir(gcs_util.gcs_parent_dir(outputSubDir))
+            self.check_preexisting_directory(allow_overwrite, dirToCheck + "/mmc/" + manifest['mmc_label'])
+
+    def check_preexisting_directory(self, allow_overwrite: bool, dirToCheck):
+        if gcs_util.gcs_path_exists(dirToCheck):
+            if not allow_overwrite:
+                raise LaunchSnRnaError(
+                    f"Output directory '{dirToCheck}' already exists. Use --allow-overwrite to overwrite.")
+            else:
+                print(f"Warning: Output directory '{dirToCheck}' already exists and will be overwritten.",
+                      file=sys.stderr)
+
     def launch_manifest(self, manifest: Dict[str, Any], args: argparse.Namespace) -> None:
         self.force_lists(manifest)
         manifest.update(self.get_tenx_metadata(manifest['version10X'], self.tenx_metadata))
+        output_label_util.add_output_labels(manifest)
         runName = self.getRunName(manifest)
         if args.output_dir:
             outdir = args.output_dir
@@ -189,12 +242,24 @@ class LaunchSnRna:
             outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{runName}"
         manifest['outdir'] = outdir
         manifest['email'] = args.email
+        start_at = manifest.get('start_at', Stage.beginning.name)
+        if start_at == Stage.dropulation.name and 'dropulation_label' not in manifest:
+            # If starting at dropulation stage and dropulation is not present, we need to start at the mmc stage instead.
+            manifest['start_at'] = Stage.mmc.name
+            start_at = Stage.mmc.name
+        if start_at == Stage.mmc.name and 'mmc_label' not in manifest:
+            raise LaunchSnRnaError("Cannot start at mmc stage without specifying mmcQueryMarkers in the manifest")
         if args.stop_at:
+            if self.stage_index(args.stop_at) < self.stage_index(start_at):
+                raise LaunchSnRnaError(
+                    f"Cannot stop at stage '{args.stop_at}' which is before the start_at stage '{start_at}'")
             manifest['stop_at'] = args.stop_at
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
             gcs_util.require_gcs_file(fastq)
         if 'reference' in manifest:
             validateReference(manifest['reference'])
+        outputSubDir = self.get_output_subdirectory(manifest)
+        self.check_preexisting(manifest, args.allow_overwrite, outputSubDir)
         params_yaml = tempfile.mkstemp(suffix=".yaml", prefix=manifest['library'] + '.', text=True)
         with os.fdopen(params_yaml[0], "w") as f:
             yaml.safe_dump(manifest, f, default_flow_style=False, sort_keys=False)
@@ -208,6 +273,7 @@ class LaunchSnRna:
             args.pipeline,
             "--params-file=" + params_yaml[1],
             "--name=" + runName,
+            "--output-dir=" + outdir
         ]
         if args.verbose or args.dry_run:
             print(" ".join(lstCommandLine))

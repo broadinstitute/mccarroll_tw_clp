@@ -68,6 +68,9 @@ YamlSchemaElement(
     "skipCbrb",
     doc="If true, do not run CBRB.",
     tyype=YamlSchemaElementType.BOOLEAN),
+YamlSchemaElement(
+    "cbrb_label", doc="Override automatic naming of CBRB output subdirectory.",
+    tyype=YamlSchemaElementType.STRING),
 ]
 
 lstCellSelectionSchemaElements = [
@@ -79,6 +82,9 @@ lstCellSelectionSchemaElements = [
         "maxIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
     YamlSchemaElement(
         "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: false.", tyype=YamlSchemaElementType.BOOLEAN),
+YamlSchemaElement(
+    "cell_selection_label", doc="Override automatic naming of cell_selection output subdirectory.",
+    tyype=YamlSchemaElementType.STRING),
 ]
 
 lstStandardAnalysisSchemaElements = [
@@ -95,6 +101,9 @@ lstDropulationSchemaElements = [
 YamlSchemaElement("vcf", doc="Required for dropulation", tyype=YamlSchemaElementType.PATH),
 YamlSchemaElement(
     "donorFile", doc="Required for dropulation", tyype=YamlSchemaElementType.PATH),
+YamlSchemaElement(
+    "dropulation_label", doc="Override automatic naming of dropulation output subdirectory.",
+    tyype=YamlSchemaElementType.STRING),
 ]
 
 lstMmcSchemaElements = [
@@ -107,7 +116,10 @@ lstMmcSchemaElements = [
         "mmcArgs",
         doc="Additional arguments to pass to MMC. A single string with space-separated arguments. "
             "Arguments with values must use an equals sign, e.g. '--expected-cells=1000 --total-droplets-included=2000'.",
-        tyype=YamlSchemaElementType.STRING)
+        tyype=YamlSchemaElementType.STRING),
+YamlSchemaElement(
+    "mmc_label", doc="Override automatic naming of MMC output subdirectory.",
+    tyype=YamlSchemaElementType.STRING),
 ]
 
 dctStageSchemaElements = {

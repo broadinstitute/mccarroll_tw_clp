@@ -43,8 +43,6 @@ _MODULE_DOC = __doc__
 def getNextStage(stage: str) -> Optional[str]:
     """Return the next stage after the given stage, or None if there is no next stage."""
     stages = list(enum_names(Stage))
-    if stage == 'beginning':
-        return stages[0]
     try:
         index = stages.index(stage)
     except ValueError:
@@ -116,9 +114,11 @@ class LaunchSnRnaStage(LaunchSnRna):
               "Note that downstream manifest keys are allowed:", file=out)
         documenter = TextYamlManifestDocumenter(out=out)
         for stage in enum_names(Stage):
-            print(f"\nStage: {stage}", file=out)
-            for element in dctStageSchemaElements.get(stage, []):
-                documenter.document_element_recursive(element, 0)
+            # Can't start at beginning with this command
+            if stage != Stage.beginning.name:
+                print(f"\nStage: {stage}", file=out)
+                for element in dctStageSchemaElements.get(stage, []):
+                    documenter.document_element_recursive(element, 0)
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = super().build_parser()
@@ -153,7 +153,9 @@ class LaunchSnRnaStage(LaunchSnRna):
             print("Errors parsing manifest:\n" + "\n".join(errors), file=sys.stderr)
             return 1
         manifest = loadAllUpstreamProperties(args.properties)
-        lstKeysToRemove = ['stage', 'submitter', 'dropulation_label', 'mmcModel']
+        # Output directory labels are recomputed in launch_manifest(), so don't need to be removed here.
+        # mmcModel is the old name for mmc_label, which may appear in older properties files.
+        lstKeysToRemove = ['stage', 'submitter', 'mmcModel']
         for key in lstKeysToRemove:
             manifest.pop(key, None)
         # There shouldn't be key collisions between upstream properties and current manifest, but if there are, the manifest should take precedence.
@@ -165,6 +167,8 @@ class LaunchSnRnaStage(LaunchSnRna):
 
     def getRunName(self, manifest: Dict[str, Any]) -> str:
         run_name = super().getRunName(manifest)
+        if self.start_stage == Stage.dropulation.name and 'dropulation_label' not in manifest:
+            return f"{Stage.mmc.name}_{run_name}"
         return f"{self.start_stage}_{run_name}"
 
     def main(self, argv: Optional[List[str]] = None) -> int:
