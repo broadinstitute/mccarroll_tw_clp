@@ -70,3 +70,18 @@ def validateReference(reference: str) -> None:
     if not gcs_util.gcs_path_is_file(gcs_path):
         raise ValueError(
             f"Reference '{gcs_path}' does not exist as a file in GCS.")
+
+def getReferenceName(reference: str) -> str:
+    """
+    Get the reference name from a reference name or GCS path.
+
+    :param reference: The reference name or GCS path.
+    :return: The reference name.
+    :raises ValueError: If the reference name is not recognized or the GCS path does not exist.
+    """
+    if '/' in reference:
+        # Extract the reference name from the GCS path: the file name minus .fasta.gz
+        name = reference.rstrip('/').split('/')[-1]
+        return name.removesuffix('.fasta.gz')
+    else:
+        return reference
