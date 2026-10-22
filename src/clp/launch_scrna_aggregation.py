@@ -150,6 +150,8 @@ class LaunchScrnaAggregation:
             args.pipeline,
             "--params-file=" + params_yaml[1],
             "--name=" + runName,
+            # Seqera lists a run's outputs from the launch configuration's outputDir, not from params.outdir
+            "--output-dir=" + outdir,
         ]
         if args.verbose or args.dry_run:
             print(" ".join(lstCommandLine))
