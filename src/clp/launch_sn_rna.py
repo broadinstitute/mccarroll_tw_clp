@@ -70,9 +70,14 @@ class LaunchSnRna:
     def build_parser(self) -> argparse.ArgumentParser:
         parser = self._ArgumentParser(self, description=self.prog_description)
         parser.add_argument(
-            "manifest", type=manifest_path_type, nargs="+",
+            "manifest", type=manifest_path_type, nargs="*",
             help="Local yaml manifest file describing the libraries to process.  If more than one manifest file "
                  "is provided, they will be combined with earlier manifest files taking precedence if key collisions.")
+        parser.add_argument(
+            "--yaml", "-y", action="append", default=[], metavar="YAML",
+            help="Yaml string (e.g. --yaml 'cbrbArgs: foo') applied on top of the manifest(s).  May be specified "
+                 "more than once.  Yaml strings take precedence over the manifest(s), and later --yaml strings "
+                 "take precedence over earlier ones.")
         parser.add_argument(
             "--project", required=True,
             help="Project name, used to look up project resources in the project metadata file.")
@@ -118,13 +123,32 @@ class LaunchSnRna:
                 f"expected a yaml mapping in manifest '{manifest_path}', found {type(loaded).__name__}")
         return loaded
 
-    def load_and_combine_manifests(self, manifest_paths: List[Path]) -> Dict[str, Any]:
+    @staticmethod
+    def parse_yaml_string(yaml_string: str) -> Dict[str, Any]:
+        try:
+            loaded = yaml.safe_load(yaml_string)
+        except yaml.YAMLError as e:
+            raise LaunchSnRnaError(f"could not parse --yaml string '{yaml_string}': {e}")
+        if loaded is None:
+            return {}
+        if not isinstance(loaded, dict):
+            raise LaunchSnRnaError(
+                f"expected a yaml mapping in --yaml string '{yaml_string}', found {type(loaded).__name__}")
+        return loaded
+
+    def load_and_combine_manifests(self, manifest_paths: List[Path], yaml_strings: Optional[List[str]] = None
+                                   ) -> Dict[str, Any]:
         """Load each yaml manifest in order and merge them into one, with the earlier manifest taking precedence
-        in the event of collisions."""
-        combined: Dict[str, Any] = self.load_manifest(manifest_paths[0])
-        for manifest_path in manifest_paths[1:]:
+        in the event of collisions.  Then apply each yaml string in order, with each taking precedence over the
+        manifests and over any earlier yaml strings."""
+        combined: Dict[str, Any] = {}
+        for manifest_path in manifest_paths:
             manifest = self.load_manifest(manifest_path)
             combined = YamlManifestUtil.project_defaults(combined, manifest)
+        for yaml_string in yaml_strings or []:
+            combined = YamlManifestUtil.project_defaults(self.parse_yaml_string(yaml_string), combined)
+        # note that it might be the case that the manifest is empty, e.g. if starting at standard_analysis stage,
+        # which often has no parameters.
         return combined
 
     @staticmethod
@@ -166,7 +190,7 @@ class LaunchSnRna:
         self.tenx_metadata = self.load_tenx_metadata(args.tenx_metadata)
 
     def load_launch_state(self, args: argparse.Namespace) -> None:
-        self.manifest = self.load_and_combine_manifests(args.manifest)
+        self.manifest = self.load_and_combine_manifests(args.manifest, args.yaml)
         self.manifests = [self.manifest]
         self.project_resources = self.resolve_project_resources(self.project_metadata, args.project)
 
