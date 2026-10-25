@@ -82,6 +82,8 @@ lstCellSelectionSchemaElements = [
         "maxIntronicPerCell", doc=_THRESHOLD_DOC, tyype=YamlSchemaElementType.FLOAT),
     YamlSchemaElement(
         "useCBRBInitialization", doc="Set to false to disable CBRB initialization.  Default: false.", tyype=YamlSchemaElementType.BOOLEAN),
+    YamlSchemaElement(
+        "useCBRBFeatures", doc="Set to false to disable using CBRB features.  Default: false.", tyype=YamlSchemaElementType.BOOLEAN),
 YamlSchemaElement(
     "cell_selection_label", doc="Override automatic naming of cell_selection output subdirectory.",
     tyype=YamlSchemaElementType.STRING),
