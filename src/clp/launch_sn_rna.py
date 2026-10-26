@@ -263,7 +263,7 @@ class LaunchSnRna:
         if args.output_dir:
             outdir = args.output_dir
         else:
-            outdir = f"gs://{self.project_resources['standard_bucket']}/projects/{self.project_resources['name']}/{runName}"
+            outdir = f"gs://{self.project_resources['standard_bucket']}/{self.project_resources['name']}/{runName}"
         manifest['outdir'] = outdir
         manifest['email'] = args.email
         start_at = manifest.get('start_at', Stage.beginning.name)

@@ -83,7 +83,7 @@ class LaunchScrnaAggregation:
         parser.add_argument(
             "--output-dir", type=gcs_path_type, metavar="GCS_PATH",
             help="gs:// path under which workflow outputs will be written. "
-                 "Default: gs://<project standard bucket>/projects/<project>/aggregation/<analysis-id>")
+                 "Default: gs://<project standard bucket>/<project>/aggregation/<analysis-id>")
         parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
                             default=self.default_pipeline)
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
@@ -112,7 +112,7 @@ class LaunchScrnaAggregation:
         if args.output_dir:
             outdir = args.output_dir
         else:
-            outdir = (f"gs://{project_resources['standard_bucket']}/projects/{project_resources['name']}"
+            outdir = (f"gs://{project_resources['standard_bucket']}/{project_resources['name']}"
                       f"/aggregation/{args.analysis_id}")
 
         manifest = args.manifest
