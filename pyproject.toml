@@ -13,6 +13,7 @@ launchSnRnaDragen = "clp.launch_sn_rna_dragen:main"
 launchSnRnaStage = "clp.launch_sn_rna_stage:main"
 launchScrnaAggregation = "clp.launch_scrna_aggregation:main"
 reportAndValidateSampleIndices = "clp.report_and_validate_sample_indices:main"
+makeElabMetricsTable = "clp.make_elab_metrics_table:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
