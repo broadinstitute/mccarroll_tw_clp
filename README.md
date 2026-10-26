@@ -22,3 +22,5 @@ the DGEs of several libraries, as listed in a YAML aggregation manifest.
 - reportAndValidateSampleIndices: generate a report of sample indices and validate 
 that distribution of reads between libraries is reasonably even, and that not too many 
 sample indices are unknown.
+- makeElabMetricsTable: produce a tab-separated table of cell selection statistics for one or more libraries suitable for pasting into an eLab entry.
+
