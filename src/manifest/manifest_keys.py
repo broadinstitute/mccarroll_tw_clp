@@ -5,7 +5,8 @@ from manifest.enums import (
     LocusFunction,
     StrandStrategy,
     enum_names,
-    Stage
+    Stage,
+    SampleType
 )
 from manifest.enums import YamlSchemaElementType
 from manifest.util.abstract_manifest_key import AbstractManifestKey
@@ -145,6 +146,11 @@ YamlSchemaElement(
     "version10X", required=True,
     doc="Version of 10X chemistry. This must be quoted so yaml parser does not interpret it as a number.",
     tyype=YamlSchemaElementType.STRING),
+YamlSchemaElement(
+    "sampleType",
+    doc="Type of sample.",
+    tyype=YamlSchemaElementType.ENUM,
+    enum_values=enum_names(SampleType)),
 YamlSchemaElement(
     "targetBamSizeMBytes", doc="Target BAM size in MB.  Default: 2048.", tyype=YamlSchemaElementType.INT),] +
                           lstAlignmentSchemaElements + lstCbrbSchemaElements + lstCellSelectionSchemaElements +

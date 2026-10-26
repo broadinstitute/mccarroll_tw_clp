@@ -59,3 +59,7 @@ class Stage(Enum):
     standard_analysis = "standard_analysis"
     dropulation = "dropulation"
     mmc = "mmc"
+
+class SampleType(Enum):
+    nuclei = "nuclei"
+    whole_cells = "whole_cells"
