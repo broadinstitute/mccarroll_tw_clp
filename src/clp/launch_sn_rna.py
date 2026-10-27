@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional
 import tempfile
 
 import yaml
-import subprocess
 
 from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.util.manifest_util import YamlManifestUtil
@@ -19,7 +18,8 @@ from manifest.manifest_keys import SnRnaManifestKey
 import util.gcs_util as gcs_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
 from util import misc_util, output_label_util
-from util.argparse_util import LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
+from util.argparse_util import HiddenArguments, LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
+from util.tw_launch_util import add_tw_launch_arguments, build_tw_launch_command, run_tw_launch
 from util.reference_metadata_util import validateReference, getReferenceName
 
 _MODULE_DOC = __doc__
@@ -30,11 +30,12 @@ class LaunchSnRna:
 
     Base class holding all the shared launch logic. Subclasses customize behavior by overriding
     `manifest_key_class` (used to validate the manifest and document its keys) and, if needed,
-    `default_pipeline` or `prog_description`.
+    `default_pipeline`, `default_revision` or `prog_description`.
     """
 
     manifest_key_class = SnRnaManifestKey
-    default_pipeline = "snRnaSeq_prod"
+    default_pipeline = "https://github.com/broadinstitute/mccarroll_nextflow"
+    default_revision = "prod"
     prog_description = _MODULE_DOC
 
     def __init__(self) -> None:
@@ -69,6 +70,8 @@ class LaunchSnRna:
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = self._ArgumentParser(self, description=self.prog_description)
+        hidden = HiddenArguments()
+        hidden.add_help_full_argument(parser)
         parser.add_argument(
             "manifest", type=manifest_path_type, nargs="*",
             help="Local yaml manifest file describing the libraries to process.  If more than one manifest file "
@@ -99,14 +102,11 @@ class LaunchSnRna:
         parser.add_argument(
             "--stop-at", choices=enum_names(Stage), metavar="STAGE",
             help="Optional. Stop the pipeline(s) after this stage. Must be one of: %(choices)s.")
-        parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
-                            default=self.default_pipeline)
+        add_tw_launch_arguments(parser, hidden, self.default_pipeline, self.default_revision)
         parser.add_argument("--allow-overwrite", "-f", action="store_true", default=False,
                             help="Allow overwriting existing output directories. Default: %(default)s")
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
         parser.add_argument("--dry-run", action="store_true",default=False,help="Don't actually run the workflow")
-        parser.add_argument("--tw", default="tw",
-                            help="Path to the TW executable. Use this if (annoyingly) PyCharm uv doesn't respect PATH changes.  Default: %(default)s)")
         return parser
 
     def parse_args(self, argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -291,18 +291,9 @@ class LaunchSnRna:
             print("Wrote manifest to " + params_yaml[1])
         if runName[0].isdigit():
             runName = 'x' + runName
-        lstCommandLine = [
-            args.tw, "launch",
-            "--workspace=" + self.project_resources['tower_workspace'],
-            args.pipeline,
-            "--params-file=" + params_yaml[1],
-            "--name=" + runName,
-            "--output-dir=" + outdir
-        ]
-        if args.verbose or args.dry_run:
-            print(" ".join(lstCommandLine))
-        if not args.dry_run:
-            subprocess.run(lstCommandLine, check=True)
+        lstCommandLine = build_tw_launch_command(
+            args, self.project_resources['tower_workspace'], params_yaml[1], runName, outdir)
+        run_tw_launch(lstCommandLine, args)
 
     def main(self, argv: Optional[List[str]] = None) -> int:
         args = self.parse_args(argv)

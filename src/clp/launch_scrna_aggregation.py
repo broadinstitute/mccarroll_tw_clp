@@ -28,7 +28,6 @@ and donor / cell type reports and metacells.  What to aggregate comes from a YAM
 """
 import argparse
 import os
-import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List, Optional
@@ -37,7 +36,8 @@ import yaml
 
 import util.gcs_util as gcs_util
 from clp.launch_sn_rna import LaunchSnRna
-from util.argparse_util import LaunchSnRnaError, gcs_path_type
+from util.argparse_util import HiddenArguments, LaunchSnRnaError, gcs_path_type
+from util.tw_launch_util import add_tw_launch_arguments, build_tw_launch_command, run_tw_launch
 
 _MODULE_DOC = __doc__
 
@@ -54,11 +54,14 @@ def manifest_path_or_gcs_type(value: str) -> str:
 class LaunchScrnaAggregation:
     """Launches the scRNA aggregation workflow in Seqera cloud."""
 
-    default_pipeline = "scrnaAggregation_prod"
+    default_pipeline = "https://github.com/broadinstitute/mccarroll-scrna-aggregation"
+    default_revision = "prod"
     prog_description = _MODULE_DOC
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(description=self.prog_description)
+        hidden = HiddenArguments()
+        hidden.add_help_full_argument(parser)
         parser.add_argument(
             "manifest", type=manifest_path_or_gcs_type,
             help="YAML aggregation manifest, either a local file or a gs:// path.  A local file is uploaded to "
@@ -84,12 +87,9 @@ class LaunchScrnaAggregation:
             "--output-dir", type=gcs_path_type, metavar="GCS_PATH",
             help="gs:// path under which workflow outputs will be written. "
                  "Default: gs://<project standard bucket>/<project>/aggregation/<analysis-id>")
-        parser.add_argument("--pipeline", help="Nextflow pipeline to invoke.  Default: %(default)s)",
-                            default=self.default_pipeline)
+        add_tw_launch_arguments(parser, hidden, self.default_pipeline, self.default_revision)
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
         parser.add_argument("--dry-run", action="store_true", default=False, help="Don't actually run the workflow")
-        parser.add_argument("--tw", default="tw",
-                            help="Path to the TW executable. Use this if (annoyingly) PyCharm uv doesn't respect PATH changes.  Default: %(default)s)")
         return parser
 
     def parse_args(self, argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -144,19 +144,9 @@ class LaunchScrnaAggregation:
         runName = args.analysis_id
         if runName[0].isdigit():
             runName = 'x' + runName
-        lstCommandLine = [
-            args.tw, "launch",
-            "--workspace=" + project_resources['tower_workspace'],
-            args.pipeline,
-            "--params-file=" + params_yaml[1],
-            "--name=" + runName,
-            # Seqera lists a run's outputs from the launch configuration's outputDir, not from params.outdir
-            "--output-dir=" + outdir,
-        ]
-        if args.verbose or args.dry_run:
-            print(" ".join(lstCommandLine))
-        if not args.dry_run:
-            subprocess.run(lstCommandLine, check=True)
+        lstCommandLine = build_tw_launch_command(
+            args, project_resources['tower_workspace'], params_yaml[1], runName, outdir)
+        run_tw_launch(lstCommandLine, args)
         return 0
 
 
