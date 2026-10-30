@@ -3,3 +3,6 @@ src/*.egg-info
 .venv/
 build/
 __pycache__/
+
+# IDE module file: holds machine-specific interpreter names
+.idea/*.iml
