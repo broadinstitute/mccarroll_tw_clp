@@ -56,6 +56,10 @@ class LaunchScrnaAggregation:
 
     default_pipeline = "https://github.com/broadinstitute/mccarroll-scrna-aggregation"
     default_revision = "prod"
+    # must satisfy nextflowVersion in the workflow's nextflow.config
+    default_nextflow_version = "26.10.4"
+    # Seqera launches from a GitHub URL with the v1 parser unless told otherwise, and the workflow needs v2
+    default_syntax_parser = "v2"
     prog_description = _MODULE_DOC
 
     def build_parser(self) -> argparse.ArgumentParser:
@@ -117,6 +121,10 @@ class LaunchScrnaAggregation:
             parser.error("--qc-conditions-file and --qc-condition-column are mutually exclusive")
         if not args.run_qc and (args.qc_conditions_file or args.qc_condition_column or args.qc_core_cell_types):
             parser.error("--qc-conditions-file, --qc-condition-column and --qc-core-cell-types require --run-qc")
+        if not args.nextflow_version:
+            args.nextflow_version = self.default_nextflow_version
+        if not args.syntax_parser:
+            args.syntax_parser = self.default_syntax_parser
         return args
 
     @staticmethod
