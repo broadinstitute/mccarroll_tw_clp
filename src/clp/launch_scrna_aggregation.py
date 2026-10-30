@@ -77,6 +77,24 @@ class LaunchScrnaAggregation:
             "--mmc-level", metavar="LEVEL",
             help="Optional. MapMyCells taxonomy level for the cell type column.  Default: the top level of the taxonomy.")
         parser.add_argument(
+            "--run-qc", action="store_true", default=False,
+            help="Run the optional aggregation QC step, which writes PDFs of library, donor and cell type QC and "
+                 "donor_qc.txt to qc_plots/ under the output directory.  The other --qc-* options require this.")
+        parser.add_argument(
+            "--qc-conditions-file", type=gcs_path_type, metavar="GCS_PATH",
+            help="Optional. gs:// path to a TSV with a header and two columns (library, condition).  Every library "
+                 "must be in it.  Adds plots that compare library metrics, donor nuclei counts and cell type "
+                 "counts, median UMIs and proportions across conditions.  Not with --qc-condition-column.")
+        parser.add_argument(
+            "--qc-condition-column", metavar="COLUMN",
+            help="Optional. Name of a cell metadata column (for example one added by a manifest join) with one value "
+                 "per library, used as the condition as --qc-conditions-file would be.  Not with "
+                 "--qc-conditions-file.")
+        parser.add_argument(
+            "--qc-core-cell-types", type=gcs_path_type, metavar="GCS_PATH",
+            help="Optional. gs:// path to a file with one core cell type per line (no header).  Labels must belong "
+                 "to the chosen MapMyCells model and level.")
+        parser.add_argument(
             "--project", required=True,
             help="Project name, used to look up project resources in the project metadata file.")
         parser.add_argument(
@@ -93,7 +111,13 @@ class LaunchScrnaAggregation:
         return parser
 
     def parse_args(self, argv: Optional[List[str]] = None) -> argparse.Namespace:
-        return self.build_parser().parse_args(argv)
+        parser = self.build_parser()
+        args = parser.parse_args(argv)
+        if args.qc_conditions_file and args.qc_condition_column:
+            parser.error("--qc-conditions-file and --qc-condition-column are mutually exclusive")
+        if not args.run_qc and (args.qc_conditions_file or args.qc_condition_column or args.qc_core_cell_types):
+            parser.error("--qc-conditions-file, --qc-condition-column and --qc-core-cell-types require --run-qc")
+        return args
 
     @staticmethod
     def check_local_manifest(manifest_path: str) -> None:
@@ -134,6 +158,14 @@ class LaunchScrnaAggregation:
             params['mmc_model'] = args.mmc_model
         if args.mmc_level:
             params['mmc_level'] = args.mmc_level
+        if args.run_qc:
+            params['run_qc'] = True
+        if args.qc_conditions_file:
+            params['qc_conditions_file'] = args.qc_conditions_file
+        if args.qc_condition_column:
+            params['qc_condition_column'] = args.qc_condition_column
+        if args.qc_core_cell_types:
+            params['qc_core_cell_types'] = args.qc_core_cell_types
 
         params_yaml = tempfile.mkstemp(suffix=".yaml", prefix=args.analysis_id + '.', text=True)
         with os.fdopen(params_yaml[0], "w") as f:
