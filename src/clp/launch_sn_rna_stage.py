@@ -169,6 +169,8 @@ class LaunchSnRnaStage(LaunchSnRna):
         run_name = super().getRunName(manifest)
         if self.start_stage == Stage.dropulation.name and 'dropulation_label' not in manifest:
             return f"{Stage.mmc.name}_{run_name}"
+        if self.start_stage == Stage.cbrb.name and manifest.get('skipCbrb', False):
+            return f"skip_cbrb_{run_name}"
         return f"{self.start_stage}_{run_name}"
 
     def main(self, argv: Optional[List[str]] = None) -> int:

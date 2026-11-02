@@ -40,6 +40,23 @@ class LaunchSnRnaDragen(LaunchSnRna):
         self.fastq_list_path = f"{self.run_folder}/Reports/fastq_list.csv"
 
         self.manifests = YamlManifestUtil.apply_defaults(self.manifest, libraryDefaults, libraries)
+        if args.output_dir and len(self.manifests) > 1:
+            raise LaunchSnRnaError(
+                f"--output-dir cannot be used with multiple libraries ({len(self.manifests)} found in manifest), "
+                "because they would all write to the same output directory.")
+        # Libraries with the same run name would write to the same default output directory.
+        # This can't be detected by checking for pre-existing output, because the directory
+        # doesn't exist until a launched workflow starts writing to it.
+        seen_run_names = set()
+        for manifest in self.manifests:
+            if 'experimentDate' not in manifest or 'library' not in manifest:
+                continue  # Missing required keys are reported by manifest validation.
+            run_name = self.getRunName(manifest)
+            if run_name in seen_run_names:
+                raise LaunchSnRnaError(
+                    f"Multiple libraries have the same experimentDate and library ('{run_name}'), "
+                    "so they would write to the same output directory.")
+            seen_run_names.add(run_name)
         # These statements just needed to satisfy manifest validation.
         self.manifest[libraries.name] = copy.deepcopy(self.manifests)
         self.manifest.pop(libraryDefaults.name, None)
