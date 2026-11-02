@@ -49,6 +49,8 @@ class LaunchSnRnaDragen(LaunchSnRna):
         # doesn't exist until a launched workflow starts writing to it.
         seen_run_names = set()
         for manifest in self.manifests:
+            if 'experimentDate' not in manifest or 'library' not in manifest:
+                continue  # Missing required keys are reported by manifest validation.
             run_name = self.getRunName(manifest)
             if run_name in seen_run_names:
                 raise LaunchSnRnaError(
