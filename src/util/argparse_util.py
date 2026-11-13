@@ -25,7 +25,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from util import gcs_util as gcs_util
+from util import path_util
 
 
 class LaunchSnRnaError(Exception):
@@ -69,7 +69,7 @@ class _ShowFullHelpAction(argparse.Action):
 
 # passed to the argparse `type` argument to validate that an argument is valid
 def gcs_path_type(value: str) -> str:
-    if not gcs_util.GCS_PATH_RE.match(value):
+    if not path_util.is_gcs_path(value):
         raise argparse.ArgumentTypeError(f"not a gs:// path: '{value}'")
     return value
 

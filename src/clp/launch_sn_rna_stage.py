@@ -35,7 +35,7 @@ from clp.launch_sn_rna import LaunchSnRna
 from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.enums import Stage, enum_names
 from manifest.manifest_keys import dctStageSchemaElements, dctStartAtManifestKeys
-from util import gcs_util
+from util import path_util
 from util.argparse_util import gcs_path_type, LaunchSnRnaError
 
 _MODULE_DOC = __doc__
@@ -73,11 +73,11 @@ dctLevelsToRoot = {
 }
 
 def getUpstreamPropertiesPath(properties_path: str, levels: int) -> Optional[str]:
-    upstream_properties_dir = gcs_util.gcs_parent_dir(properties_path)
+    upstream_properties_dir = path_util.parent_dir(properties_path)
     for _ in range(levels):
-        upstream_properties_dir = gcs_util.gcs_parent_dir(upstream_properties_dir)
-    upstream_properties_path = gcs_util.gcs_join(upstream_properties_dir, "properties.yaml")
-    if not gcs_util.gcs_path_exists(upstream_properties_path):
+        upstream_properties_dir = path_util.parent_dir(upstream_properties_dir)
+    upstream_properties_path = path_util.join(upstream_properties_dir, "properties.yaml")
+    if not path_util.exists(upstream_properties_path):
         raise LaunchSnRnaError(f"Upstream properties file not found: {upstream_properties_path}")
     return upstream_properties_path
 
@@ -86,20 +86,20 @@ def getLibraryDirectoryFromPropertiesPath(properties_path: str, stage: str) -> s
     levels_to_root = dctLevelsToRoot.get(stage)
     if levels_to_root is None:
         raise LaunchSnRnaError(f"Upstream stage '{stage}' is not recognized.")
-    library_dir = gcs_util.gcs_parent_dir(properties_path)
+    library_dir = path_util.parent_dir(properties_path)
     for _ in range(levels_to_root):
-        library_dir = gcs_util.gcs_parent_dir(library_dir)
+        library_dir = path_util.parent_dir(library_dir)
     return library_dir
 
 def loadAllUpstreamProperties(properties_path: str) -> Dict[str, Any]:
     """Load all properties from the given properties.yaml file and all upstream properties.yaml files."""
-    dctProperties = gcs_util.load_gcs_yaml(properties_path)
+    dctProperties = path_util.load_yaml(properties_path)
     upstream_stage = dctProperties.get('stage')
     if upstream_stage is None:
         raise LaunchSnRnaError(f"Properties file '{properties_path}' does not contain a 'stage' key.")
     while upstream_stage in dctUpstreamStageLevels.keys():
         properties_path = getUpstreamPropertiesPath(properties_path, dctUpstreamStageLevels[upstream_stage])
-        upstream_properties = gcs_util.load_gcs_yaml(properties_path)
+        upstream_properties = path_util.load_yaml(properties_path)
         upstream_stage = upstream_properties.get('stage')
         # There shouldn't be key collisions between upstream and downstream properties, but if there are, the downstream properties should take precedence.
         upstream_properties.update(dctProperties)
@@ -133,7 +133,7 @@ class LaunchSnRnaStage(LaunchSnRna):
     def load_launch_state(self, args: argparse.Namespace) -> int:
         self.load_metadata(args)
         if args.project is None:
-            bucket = gcs_util.split_gcs_path(args.properties)[0]
+            bucket = path_util.gcs_bucket(args.properties)
             # scan through project dictionaries in self.project_metadata and return the project name for the one that has a bucket matching the properties file's bucket
             for project_dict in self.project_metadata.values():
                 if project_dict.get('standard_bucket') == bucket:
@@ -143,7 +143,7 @@ class LaunchSnRnaStage(LaunchSnRna):
                 raise LaunchSnRnaError(f"Could not infer project name from properties file '{args.properties}'.  "
                                        f"use --project to specify the project name explicitly.")
         super().load_launch_state(args)
-        dctProperties = gcs_util.load_gcs_yaml(args.properties)
+        dctProperties = path_util.load_yaml(args.properties)
         upstreamStage = dctProperties['stage']
         if args.output_dir is None:
             args.output_dir = getLibraryDirectoryFromPropertiesPath(args.properties, upstreamStage)

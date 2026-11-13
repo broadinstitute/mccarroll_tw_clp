@@ -15,7 +15,7 @@ from manifest.util.documenter import TextYamlManifestDocumenter
 from manifest.util.manifest_util import YamlManifestUtil
 from manifest.enums import Stage, enum_names
 from manifest.manifest_keys import SnRnaManifestKey
-import util.gcs_util as gcs_util
+import util.path_util as path_util
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
 from util import misc_util, output_label_util
 from util.argparse_util import HiddenArguments, LaunchSnRnaError, gcs_path_type, email_type, manifest_path_type
@@ -171,7 +171,7 @@ class LaunchSnRna:
 
     @staticmethod
     def load_project_metadata(gcs_path: str) -> Dict[str, Any]:
-        project_metadata = gcs_util.load_gcs_yaml(gcs_path)
+        project_metadata = path_util.load_yaml(gcs_path)
         lstProjects = project_metadata['projects']
         # Convert the list of projects into a dictionary in which the key is the value of the 'name' element of each sub-dictionary
         dctProjects = {dctProject['name']: dctProject for dctProject in lstProjects}
@@ -180,7 +180,7 @@ class LaunchSnRna:
 
     @staticmethod
     def load_tenx_metadata(gcs_path: str) -> Dict[str, Any]:
-        tenx_metadata = gcs_util.load_gcs_yaml(gcs_path)
+        tenx_metadata = path_util.load_yaml(gcs_path)
         # Convert the list of tenx metadata into a dictionary in which the key is the value of the 'version10X' element of each sub-dictionary
         dctTenxMetadata = {dctTenx['version10X']: dctTenx for dctTenx in tenx_metadata['versions']}
         return dctTenxMetadata
@@ -243,11 +243,11 @@ class LaunchSnRna:
         startAtIndex = self.stage_index(start_at)
         if startAtIndex == self.stage_index(Stage.dropulation.name) and 'mmc_label' in manifest:
             # mmc and dropulation are unusual in that one is not nested in the other, so go up 2 levels from outputSubDir to check for the mmc directory
-            dirToCheck = gcs_util.gcs_parent_dir(gcs_util.gcs_parent_dir(outputSubDir))
+            dirToCheck = path_util.parent_dir(path_util.parent_dir(outputSubDir))
             self.check_preexisting_directory(allow_overwrite, dirToCheck + "/mmc/" + manifest['mmc_label'])
 
     def check_preexisting_directory(self, allow_overwrite: bool, dirToCheck):
-        if gcs_util.gcs_path_exists(dirToCheck):
+        if path_util.exists(dirToCheck):
             if not allow_overwrite:
                 raise LaunchSnRnaError(
                     f"Output directory '{dirToCheck}' already exists. Use --allow-overwrite to overwrite.")
@@ -279,7 +279,7 @@ class LaunchSnRna:
                     f"Cannot stop at stage '{args.stop_at}' which is before the start_at stage '{start_at}'")
             manifest['stop_at'] = args.stop_at
         for fastq in manifest[FASTQ_READ1] + manifest[FASTQ_READ2]:
-            gcs_util.require_gcs_file(fastq)
+            path_util.require_file(fastq)
         if 'reference' in manifest:
             validateReference(manifest['reference'])
         outputSubDir = self.get_output_subdirectory(manifest)
