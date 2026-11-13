@@ -22,7 +22,7 @@
 # SOFTWARE.
 from typing import Dict, Optional
 
-from util import gcs_util
+from util import path_util
 
 ReferenceParents = [
 'gs://mccarroll_scrnaseq_standard/metadata/reference'
@@ -37,7 +37,7 @@ def _build_reference_map() -> Dict[str, str]:
     reference_map: Dict[str, str] = {}
     for parent in ReferenceParents:
         parent_prefix = parent.rstrip('/') + '/'
-        for gcs_path in gcs_util.list_gcs_paths(parent):
+        for gcs_path in path_util.list_files(parent):
             relative = gcs_path[len(parent_prefix):]
             parts = relative.split('/')
             if len(parts) == 2 and parts[1].endswith('.fasta.gz'):
@@ -67,9 +67,9 @@ def validateReference(reference: str) -> None:
         if reference not in reference_map:
             raise ValueError(f"Reference name '{reference}' not recognized.")
         gcs_path = reference_map[reference]
-    if not gcs_util.gcs_path_is_file(gcs_path):
+    if not path_util.is_file(gcs_path):
         raise ValueError(
-            f"Reference '{gcs_path}' does not exist as a file in GCS.")
+            f"Reference '{gcs_path}' does not exist as a file.")
 
 def getReferenceName(reference: str) -> str:
     """

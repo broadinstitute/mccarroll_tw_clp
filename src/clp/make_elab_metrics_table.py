@@ -12,7 +12,7 @@ from typing import Dict, List
 
 import yaml
 
-from util import gcs_util
+from util import path_util
 from util.argparse_util import gcs_path_type
 
 COLUMNS = ["library", "nuclei", "reads_per_umi", "median_umis", "ambient_peak", "cell_selection"]
@@ -26,7 +26,7 @@ METRICS_COLUMNS = {
 
 
 def library_name(library_dir: str) -> str:
-    properties = gcs_util.load_gcs_yaml(gcs_util.gcs_join(library_dir, "properties.yaml"))
+    properties = path_util.load_yaml(path_util.join(library_dir, "properties.yaml"))
     for key in ("experimentDate", "library"):
         if key not in properties:
             raise Exception(f"'{key}' not found in properties.yaml of '{library_dir}'")
@@ -38,7 +38,7 @@ def find_cell_selection_dirs(library_dir: str) -> List[str]:
     prefix = library_dir.rstrip("/") + "/"
     regex = re.compile("^" + re.escape(prefix) + r"[^/]+/cbrb/[^/]+/cell_selection/[^/]+(?=/properties\.yaml$)")
     dirs = set()
-    for path in gcs_util.list_gcs_paths(library_dir):
+    for path in path_util.list_files(library_dir):
         match = regex.match(path)
         if match:
             dirs.add(match.group(0))
@@ -48,13 +48,13 @@ def find_cell_selection_dirs(library_dir: str) -> List[str]:
 def read_metrics(cell_selection_dir: str) -> Dict[str, str]:
     """Load the single data row of <library>.readQualityMetrics.txt in the cell selection directory."""
     prefix = cell_selection_dir.rstrip("/") + "/"
-    metrics_paths = [path for path in gcs_util.list_gcs_paths(cell_selection_dir)
+    metrics_paths = [path for path in path_util.list_files(cell_selection_dir)
                      if path.startswith(prefix) and "/" not in path[len(prefix):]
                      and path.endswith(METRICS_SUFFIX)]
     if len(metrics_paths) != 1:
         raise Exception(f"expected exactly one *{METRICS_SUFFIX} in '{cell_selection_dir}', "
                         f"found {len(metrics_paths)}")
-    reader = csv.DictReader(gcs_util.load_gcs_text(metrics_paths[0]).splitlines(), delimiter="\t")
+    reader = csv.DictReader(path_util.read_text(metrics_paths[0]).splitlines(), delimiter="\t")
     missing = [col for col in METRICS_COLUMNS.values() if col not in (reader.fieldnames or [])]
     if missing:
         raise Exception(f"'{metrics_paths[0]}' is missing column(s): {', '.join(missing)}")
@@ -68,7 +68,7 @@ def make_rows(library_dir: str) -> List[Dict[str, str]]:
     library = library_name(library_dir)
     rows = []
     for cell_selection_dir in find_cell_selection_dirs(library_dir):
-        properties = gcs_util.load_gcs_yaml(gcs_util.gcs_join(cell_selection_dir, "properties.yaml"))
+        properties = path_util.load_yaml(path_util.join(cell_selection_dir, "properties.yaml"))
         if "cell_selection_label" not in properties:
             raise Exception(f"'cell_selection_label' not found in properties.yaml of '{cell_selection_dir}'")
         metrics = read_metrics(cell_selection_dir)

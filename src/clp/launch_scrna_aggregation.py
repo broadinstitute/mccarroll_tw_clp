@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-import util.gcs_util as gcs_util
+import util.path_util as path_util
 from clp.launch_sn_rna import LaunchSnRna
 from util.argparse_util import HiddenArguments, LaunchSnRnaError, gcs_path_type
 from util.tw_launch_util import add_tw_launch_arguments, build_tw_launch_command, run_tw_launch
@@ -44,7 +44,7 @@ _MODULE_DOC = __doc__
 
 def manifest_path_or_gcs_type(value: str) -> str:
     """argparse type: a gs:// path, or a local file that exists."""
-    if gcs_util.GCS_PATH_RE.match(value):
+    if path_util.is_gcs_path(value):
         return value
     if not os.path.isfile(value):
         raise argparse.ArgumentTypeError(f"manifest file not found: '{value}'")
@@ -148,13 +148,13 @@ class LaunchScrnaAggregation:
                       f"/aggregation/{args.analysis_id}")
 
         manifest = args.manifest
-        if not gcs_util.GCS_PATH_RE.match(manifest):
+        if not path_util.is_gcs_path(manifest):
             self.check_local_manifest(manifest)
-            gcs_manifest = gcs_util.gcs_join(outdir, f"{args.analysis_id}.manifest.yaml")
+            gcs_manifest = path_util.join(outdir, f"{args.analysis_id}.manifest.yaml")
             if args.verbose or args.dry_run:
                 print(f"Upload {manifest} to {gcs_manifest}")
             if not args.dry_run:
-                gcs_util.upload_gcs_file(gcs_manifest, manifest)
+                path_util.copy_file(manifest, gcs_manifest)
             manifest = gcs_manifest
 
         params: Dict[str, Any] = {

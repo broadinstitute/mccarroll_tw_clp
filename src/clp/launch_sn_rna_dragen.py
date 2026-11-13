@@ -11,7 +11,7 @@ from util.argparse_util import LaunchSnRnaError, gcs_path_type
 from manifest.constants import FASTQ_READ1, FASTQ_READ2
 from manifest.manifest_keys import libraries, libraryDefaults, SnRnaDragenManifestKey, library, experimentDate, rgsm
 from manifest.util.manifest_util import YamlManifestUtil
-import util.gcs_util as gcs_util
+import util.path_util as path_util
 from util import misc_util
 
 _FASTQ_LIST_COLUMNS = ["RGSM", "Read1File", "Read2File"] # We don't care about columns "RGID", "RGLB", "Lane"
@@ -84,7 +84,7 @@ class LaunchSnRnaDragen(LaunchSnRna):
     def load_fastq_list(self) -> Dict[str, List[Tuple[str, str]]]:
         """Load Reports/fastq_list.csv from the run folder, grouped by RGSM,
         with Read1File/Read2File reduced to just the filename."""
-        rows = gcs_util.load_gcs_csv(self.fastq_list_path, required_columns=_FASTQ_LIST_COLUMNS)
+        rows = path_util.load_csv_rows(self.fastq_list_path, required_columns=_FASTQ_LIST_COLUMNS)
         result: Dict[str, List[Tuple[str, str]]] = {}
         for row in rows:
             read1 = row["Read1File"].rsplit("/", 1)[-1]

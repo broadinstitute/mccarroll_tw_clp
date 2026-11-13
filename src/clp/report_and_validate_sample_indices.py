@@ -13,7 +13,6 @@ import tempfile
 from typing import Dict, List, Optional, Tuple
 from xml.etree import ElementTree
 
-from util import gcs_util
 from util import path_util
 
 DEMULTIPLEX_STATS_FILE = "Demultiplex_Stats.csv"
@@ -233,12 +232,9 @@ def report_and_validate_sample_indices(reports_dir: str, output_dir: str = ".", 
     reports_dir = reports_dir.rstrip("/")
     flowcell = _extract_flowcell(path_util.read_text(path_util.join(reports_dir, "RunInfo.xml")))
 
-    output_is_gcs = path_util.is_gcs_path(output_dir)
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory() as local_output_dir:
         # Reports are always built on the local filesystem first (csv/matplotlib need real file paths),
-        # then uploaded to output_dir if it's a gs:// path.
-        local_output_dir = tmp_dir if output_is_gcs else output_dir
-
+        # then copied to output_dir, which may be local or gs://.
         top_unknown_barcodes_file = os.path.join(local_output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv")
         summarize_top_unknown_barcodes(out_file=top_unknown_barcodes_file, reports_dir=reports_dir)
         summarize_demultiplex_stats(
@@ -251,14 +247,11 @@ def report_and_validate_sample_indices(reports_dir: str, output_dir: str = ".", 
             analysis_identifier=flowcell,
             out_pdf=os.path.join(local_output_dir, f"{flowcell}.barcode_metrics.pdf") if make_plot else None,
             out_log=os.path.join(local_output_dir, f"{flowcell}.sample_index_report.log"),
-            unknown_barcodes_display_path=path_util.join(
-                output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv") if output_is_gcs else None,
+            unknown_barcodes_display_path=path_util.join(output_dir, f"{flowcell}.Top_Unknown_Barcodes.csv"),
         )
 
-        if output_is_gcs:
-            for filename in os.listdir(local_output_dir):
-                gcs_util.upload_gcs_file(
-                    path_util.join(output_dir, filename), os.path.join(local_output_dir, filename))
+        for filename in os.listdir(local_output_dir):
+            path_util.copy_file(os.path.join(local_output_dir, filename), path_util.join(output_dir, filename))
 
     concatenated_messages = "\n".join(messages)
     if any(EXCEEDS_THRESHOLD in message for message in messages):
