@@ -27,11 +27,15 @@ from typing import List
 
 from util.argparse_util import HiddenArguments
 
-DEFAULT_WORKSPACE_SECRETS = "SENDGRID_API_KEY"
-
-
-def add_tw_launch_arguments(parser: argparse.ArgumentParser, hidden: HiddenArguments, default_pipeline: str,
-                            default_revision: str) -> None:
+def add_tw_launch_arguments(
+        parser: argparse.ArgumentParser,
+        hidden: HiddenArguments,
+        default_pipeline: str,
+        default_revision: str,
+        default_nextflow_version: str = "26.10",
+        default_syntax_parser: str = "v2",
+        default_workspace_secrets: str = "SENDGRID_API_KEY",
+) -> None:
     """Add the options that control how the workflow is launched with `tw launch`.
 
     Most users never need these, so they are hidden from --help and only shown by --help-full."""
@@ -39,10 +43,10 @@ def add_tw_launch_arguments(parser: argparse.ArgumentParser, hidden: HiddenArgum
     hidden.add_argument(
         group, "--pipeline", default=default_pipeline,
         help="Nextflow pipeline to invoke: a GitHub URL, or the name of a pipeline in the workspace Launchpad.  "
-             "Default: %(default)s)")
+             "Default: %(default)s")
     hidden.add_argument(
         group, "--revision", "-r", default=default_revision, metavar="REVISION",
-        help="Git branch or tag of the pipeline to run.  Default: %(default)s)")
+        help="Git branch or tag of the pipeline to run.  Default: %(default)s")
     hidden.add_argument(
         group, "--commit-id", metavar="COMMIT",
         help="Optional. Pin the pipeline to this git commit hash, e.g. to reproduce an earlier run.")
@@ -56,22 +60,24 @@ def add_tw_launch_arguments(parser: argparse.ArgumentParser, hidden: HiddenArgum
         group, "--work-dir", metavar="GCS_PATH",
         help="Optional. Nextflow work directory.  Default: the compute environment's work directory.")
     hidden.add_argument(
-        group, "--workspace-secrets", default=DEFAULT_WORKSPACE_SECRETS, metavar="NAME[,NAME...]",
+        group, "--workspace-secrets", default=default_workspace_secrets, metavar="NAME[,NAME...]",
         help="Comma-separated workspace secrets to make available to the pipeline.  "
-             "Use an empty string for none.  Default: %(default)s)")
+             "Use an empty string for none.  Default: %(default)s")
     hidden.add_argument(
-        group, "--nextflow-version", metavar="VERSION",
-        help="Optional. Nextflow version to run.  Default: determined by Seqera.")
+        group, "--nextflow-version", default=default_nextflow_version, metavar="VERSION",
+        help="Nextflow version to run in a launch container.  "
+             "For more information see https://docs.seqera.io/platform-cloud/launch/advanced#nextflow-version  "
+             "Default: %(default)s")
     hidden.add_argument(
-        group, "--syntax-parser", choices=["v1", "v2"],
-        help="Optional. Nextflow syntax parser version.  Default: determined by Seqera.")
+        group, "--syntax-parser", default=default_syntax_parser, choices=["v1", "v2"],
+        help="Nextflow syntax parser version.  Default: %(default)s")
     hidden.add_argument(
         group, "--labels", metavar="LABEL[,LABEL...]",
         help="Optional. Comma-separated labels to assign to the run.")
     hidden.add_argument(
         group, "--tw", default="tw",
         help="Path to the TW executable. Use this if (annoyingly) PyCharm uv doesn't respect PATH changes.  "
-             "Default: %(default)s)")
+             "Default: %(default)s")
 
 
 def build_tw_launch_command(args: argparse.Namespace, workspace: str, params_file: str, run_name: str,

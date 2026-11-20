@@ -109,7 +109,14 @@ class LaunchScrnaAggregation:
             "--output-dir", type=gcs_path_type, metavar="GCS_PATH",
             help="gs:// path under which workflow outputs will be written. "
                  "Default: gs://<project standard bucket>/<project>/aggregation/<analysis-id>")
-        add_tw_launch_arguments(parser, hidden, self.default_pipeline, self.default_revision)
+        add_tw_launch_arguments(
+            parser,
+            hidden,
+            self.default_pipeline,
+            self.default_revision,
+            self.default_nextflow_version,
+            self.default_syntax_parser,
+        )
         parser.add_argument("--verbose", "-v", action="store_true", default=False)
         parser.add_argument("--dry-run", action="store_true", default=False, help="Don't actually run the workflow")
         return parser
